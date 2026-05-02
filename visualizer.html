@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Visualizer</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <style>
+        /* CSS Variables cho Theme hiện đại */
+        :root {
+            --bg-base: #0d1117;
+            --bg-panel: #161b22;
+            --border: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --text-accent: #58a6ff;
+            --btn-bg: #21262d;
+            --btn-hover: #30363d;
+            --btn-run: #238636;
+            --btn-run-hover: #2ea043;
+            --font-ui: 'Segoe UI', system-ui, sans-serif;
+            --font-code: 'Consolas', 'Fira Code', monospace;
+            --hl-line-bg: rgba(210, 153, 34, 0.15);
+            --hl-line-border: #d29922;
+            --block-bg: #1f6feb;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-base); color: var(--text-main); font-family: var(--font-ui); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #484f58; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #8b949e; }
+
+        /* --- HEADER & CONTROLS --- */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background-color: var(--bg-panel); border-bottom: 1px solid var(--border); }
+        .logo { font-size: 16px; font-weight: bold; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        .logo span { color: var(--text-accent); }
+        
+        .controls { display: flex; align-items: center; gap: 8px; }
+        .controls button, .controls select { background: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: 0.2s; outline: none;}
+        .controls button:hover, .controls select:hover { background: var(--btn-hover); }
+        .controls button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .controls .btn-run { background: var(--btn-run); border-color: rgba(240,246,252,0.1); color: white; }
+        .controls .btn-run:hover:not(:disabled) { background: var(--btn-run-hover); }
+        
+        #loader { font-size: 13px; color: var(--text-muted); display: none; margin-right: 10px; font-family: var(--font-code); }
+        .spinning { display: inline-block; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* --- MAIN LAYOUT --- */
+        .workspace { display: flex; flex: 1; overflow: hidden; padding: 10px; gap: 10px; }
+        .pane { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
+        .pane-left { flex: 5; display: flex; flex-direction: column; gap: 10px; background: transparent; border: none; }
+        .pane-right { flex: 4; }
+        
+        .pane-header { padding: 8px 12px; font-size: 12px; font-weight: bold; color: var(--text-muted); border-bottom: 1px solid var(--border); background: var(--bg-panel); letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
+
+        /* --- EDITOR --- */
+        .editor-container { flex: 2; display: flex; position: relative; background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .line-numbers { padding: 15px 10px; background: var(--bg-panel); color: var(--text-muted); text-align: right; font-family: var(--font-code); font-size: 14px; line-height: 24px; user-select: none; border-right: 1px solid var(--border); min-width: 45px; overflow-y: hidden; }
+        .textarea-wrapper { flex: 1; position: relative; overflow: hidden; }
+        textarea#codeInput { width: 100%; height: 100%; padding: 15px 10px; border: none; background: transparent; color: var(--text-main); font-family: var(--font-code); font-size: 14px; line-height: 24px; resize: none; outline: none; white-space: pre; overflow: auto; }
+        
+        /* Highlight dòng đang chạy */
+        .active-line { position: absolute; left: 0; right: 0; height: 24px; background: var(--hl-line-bg); border-left: 3px solid var(--hl-line-border); pointer-events: none; display: none; z-index: 1; transition: top 0.1s ease; }
+        .active-line::before { content: "▶"; color: var(--hl-line-border); position: absolute; left: 6px; top: 1px; font-size: 12px; }
+
+        /* --- CONSOLE --- */
+        .console-container { flex: 1; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; }
+        .console-output { flex: 1; padding: 10px 12px; font-family: var(--font-code); font-size: 13px; overflow-y: auto; white-space: pre-wrap; color: var(--text-main); }
+        .text-err { color: #ff7b72; }
+        .text-sys { color: #79c0ff; }
+
+        /* --- VISUALIZER --- */
+        .visualizer-area { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        
+        /* Row cho mỗi biến */
+        .var-row { display: flex; align-items: flex-start; gap: 10px; padding-bottom: 12px; border-bottom: 1px dashed var(--border); font-family: var(--font-code); }
+        .var-row:last-child { border-bottom: none; }
+        .var-name { width: 80px; text-align: right; font-weight: bold; color: #d2a8ff; padding-top: 4px; word-break: break-all; }
+        .var-eq { color: var(--text-muted); padding-top: 4px; font-weight: bold; }
+        
+        /* Container chứa các giá trị/block */
+        .var-values { flex: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+        .var-block { background: var(--block-bg); color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); min-width: 30px; text-align: center; }
+        .var-symbol { color: var(--text-muted); font-size: 18px; font-weight: bold; }
+
+        /* --- MODAL CÀI ĐẶT --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; z-index: 999; backdrop-filter: blur(2px); }
+        .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; width: 350px; z-index: 1000; box-shadow: 0 10px 40px rgba(0,0,0,0.5); display: none; overflow: hidden; }
+        .modal-header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .modal-header button { background: transparent; color: var(--text-muted); border: none; font-size: 18px; cursor: pointer; }
+        .modal-header button:hover { color: #fff; }
+        .modal-body { padding: 15px 20px; max-height: 300px; overflow-y: auto; }
+        
+        .var-toggle-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-family: var(--font-code); font-size: 14px; }
+        .var-toggle-item:last-child { border: none; }
+        input[type="checkbox"] { accent-color: var(--text-accent); width: 16px; height: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <!-- Popup Cài đặt biến -->
+    <div id="modalOverlay" class="modal-overlay" onclick="toggleDebug()"></div>
+    <div id="debugModal" class="modal">
+        <div class="modal-header">
+            <span>⚙ Cài đặt hiển thị</span>
+            <button onclick="toggleDebug()">✕</button>
+        </div>
+        <div class="modal-body" id="debugList">
+            <!-- Checkbox biến chèn vào đây -->
+            <div style="color: #8b949e; font-size: 13px; text-align: center;">Chưa có dữ liệu. Hãy chạy code trước!</div>
+        </div>
+    </div>
+
+    <!-- Header / Navbar -->
+    <div class="header">
+        <a class="logo" href="./index.html"><span>[ / ]</span> Trang chủ</a>
+        <div class="controls">
+            <span id="loader"><span class="spinning">⚙</span> Tải Python...</span>
+            <button onclick="toggleDebug()" title="Cài đặt">⚙</button>
+            <select id="langSelect">
+                <option value="python">Python 3</option>
+            </select>
+            <button id="prevBtn" onclick="prevStep()" disabled>⏮</button>
+            <button id="nextBtn" onclick="nextStep()" disabled>⏭</button>
+            <button id="runBtn" class="btn-run" onclick="runCode()">▶ RUN</button>
+        </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+        <div class="pane-left">
+            <!-- Code Editor -->
+            <div class="editor-container">
+                <div id="lineNumbers" class="line-numbers"></div>
+                <div class="textarea-wrapper">
+                    <div id="activeLine" class="active-line"></div>
+                    <textarea id="codeInput" spellcheck="false" oninput="updateLineNumbers()" onscroll="syncScroll()">
+print("Khởi tạo danh sách:")
+arr = [5, 10, 15]
+tong = 0
+
+for so in arr:
+    tong = tong + so
+    print(f"Cộng {so}, tổng hiện tại = {tong}")
+
+ket_qua = "Hoàn thành!"
+print(ket_qua)</textarea>
+                </div>
+            </div>
+            
+            <!-- Console -->
+            <div class="console-container">
+                <div class="pane-header">>_ OUTPUT</div>
+                <div id="consoleOutput" class="console-output"></div>
+            </div>
+        </div>
+
+        <div class="pane-right pane">
+            <div class="pane-header">{ } MEMORY (BIẾN)</div>
+            <div id="visualizerArea" class="visualizer-area">
+                <div style="color: #8b949e; font-size: 13px; text-align: center; margin-top: 20px;">
+                    Biến sẽ hiển thị tại đây dưới dạng các khối vuông trực quan.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CÁC PHẦN TỬ DOM ---
+        const consoleOutput = document.getElementById('consoleOutput');
+        const visualizerArea = document.getElementById('visualizerArea');
+        const runBtn = document.getElementById('runBtn');
+        const loader = document.getElementById('loader');
+        
+        const codeInput = document.getElementById('codeInput');
+        const lineNumbers = document.getElementById('lineNumbers');
+        const activeLine = document.getElementById('activeLine');
+        
+        const debugModal = document.getElementById('debugModal');
+        const modalOverlay = document.getElementById('modalOverlay');
+        const debugList = document.getElementById('debugList');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+
+        // --- STATE & DATA ---
+        let pyodideInstance = null;
+        let globalTraceData = [];
+        let globalOutput = "";
+        let currentStepIndex = 0;
+        let isDebugOpen = false;
+        let visibleVariables = new Set();
+
+        // --- UI: EDITOR ---
+        function updateLineNumbers() {
+            const lines = codeInput.value.split('\n').length;
+            lineNumbers.innerHTML = Array(lines).fill(0).map((_, i) => i + 1).join('<br>');
+        }
+        
+        function syncScroll() {
+            lineNumbers.scrollTop = codeInput.scrollTop;
+            updateArrowPosition();
+        }
+
+        function updateArrowPosition() {
+            if (globalTraceData.length > 0 && currentStepIndex >= 0) {
+                const line = globalTraceData[currentStepIndex].line;
+                // padding-top: 15px, line-height: 24px
+                const topPos = 15 + ((line - 1) * 24) - codeInput.scrollTop;
+                activeLine.style.top = topPos + 'px';
+            }
+        }
+        updateLineNumbers(); // Gọi lần đầu
+
+        // --- UI: MODAL CÀI ĐẶT ---
+        function toggleDebug() {
+            isDebugOpen = !isDebugOpen;
+            debugModal.style.display = isDebugOpen ? 'block' : 'none';
+            modalOverlay.style.display = isDebugOpen ? 'block' : 'none';
+        }
+
+        function initializeDebugMenu(traceData) {
+            let allUnique = new Set();
+            visibleVariables.clear();
+
+            traceData.forEach(step => {
+                if (step.vars) {
+                    Object.keys(step.vars).forEach(varName => {
+                        if (!varName.startsWith('__')) allUnique.add(varName);
+                    });
+                }
+            });
+
+            allUnique.forEach(v => visibleVariables.add(v));
+            
+            if (allUnique.size === 0) return;
+
+            debugList.innerHTML = '';
+            allUnique.forEach(varName => {
+                const item = document.createElement('label');
+                item.className = 'var-toggle-item';
+                item.innerHTML = `
+                    <input type="checkbox" checked onchange="toggleVar('${varName}', this.checked)">
+                    <span>${varName}</span>
+                `;
+                debugList.appendChild(item);
+            });
+        }
+
+        function toggleVar(varName, isVisible) {
+            isVisible ? visibleVariables.add(varName) : visibleVariables.delete(varName);
+            if (globalTraceData.length > 0) renderVariables(globalTraceData[currentStepIndex].vars);
+        }
+
+        // --- XUẤT CONSOLE ---
+        function printToConsole(text, type = "normal") {
+            const span = document.createElement('span');
+            span.textContent = text + '\n';
+            if (type === "error") span.className = "text-err";
+            if (type === "system") span.className = "text-sys";
+            consoleOutput.appendChild(span);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        // --- VẼ KHỐI VUÔNG TRỰC QUAN (NEW LOGIC) ---
+        function renderVariables(varsObj) {
+            visualizerArea.innerHTML = '';
+            
+            const entries = Object.entries(varsObj).filter(([k]) => !k.startsWith('__') && visibleVariables.has(k));
+            if (entries.length === 0) {
+                visualizerArea.innerHTML = '<div style="color:#8b949e; font-size:13px; text-align:center;">Trống</div>';
+                return;
+            }
+
+            for (const [name, data] of entries) {
+                const row = document.createElement('div');
+                row.className = 'var-row';
+                
+                // Tên biến
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'var-name';
+                nameDiv.textContent = name;
+                
+                // Dấu =
+                const eqDiv = document.createElement('div');
+                eqDiv.className = 'var-eq';
+                eqDiv.textContent = '=';
+
+                // Các khối vuông
+                const valsDiv = document.createElement('div');
+                valsDiv.className = 'var-values';
+
+                if (data.type === 'list') {
+                    const bOpen = document.createElement('span'); bOpen.className = 'var-symbol'; bOpen.textContent = '[';
+                    valsDiv.appendChild(bOpen);
+
+                    data.val.forEach(item => {
+                        const block = document.createElement('div');
+                        block.className = 'var-block';
+                        block.textContent = item;
+                        valsDiv.appendChild(block);
+                    });
+
+                    const bClose = document.createElement('span'); bClose.className = 'var-symbol'; bClose.textContent = ']';
+                    valsDiv.appendChild(bClose);
+                } else {
+                    const block = document.createElement('div');
+                    block.className = 'var-block';
+                    block.textContent = data.val;
+                    valsDiv.appendChild(block);
+                }
+
+                row.appendChild(nameDiv);
+                row.appendChild(eqDiv);
+                row.appendChild(valsDiv);
+                visualizerArea.appendChild(row);
+            }
+        }
+
+        // --- STEP-BY-STEP LOGIC ---
+        function setupTrace(traceData, fullOutput) {
+            globalTraceData = traceData;
+            globalOutput = fullOutput;
+            currentStepIndex = 0;
+            
+            runBtn.disabled = false;
+            initializeDebugMenu(traceData);
+
+            if (traceData.length > 0) {
+                renderStep(0);
+            } else {
+                activeLine.style.display = 'none';
+                printToConsole(fullOutput);
+            }
+        }
+
+        function renderStep(index) {
+            const step = globalTraceData[index];
+            if (!step) return;
+
+            renderVariables(step.vars);
+            activeLine.style.display = 'block';
+            updateArrowPosition();
+
+            prevBtn.disabled = index === 0;
+            nextBtn.disabled = index === globalTraceData.length - 1;
+
+            consoleOutput.innerHTML = '';
+            if (index === globalTraceData.length - 1) {
+                printToConsole(globalOutput);
+            } else {
+                printToConsole("> Đang chạy từng bước...", "system");
+            }
+        }
+
+        function nextStep() {
+            if (currentStepIndex < globalTraceData.length - 1) {
+                currentStepIndex++;
+                renderStep(currentStepIndex);
+            }
+        }
+
+        function prevStep() {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                renderStep(currentStepIndex);
+            }
+        }
+
+        // --- KHỞI TẠO & CHẠY PYTHON ---
+        async function initPyodide() {
+            if (!pyodideInstance) {
+                loader.style.display = 'inline-block';
+                pyodideInstance = await loadPyodide();
+                loader.style.display = 'none';
+            }
+        }
+
+        async function runCode() {
+            const code = codeInput.value;
+            consoleOutput.innerHTML = '';
+            visualizerArea.innerHTML = '';
+
+            await initPyodide();
+            runBtn.disabled = true;
+
+            pyodideInstance.globals.set("user_code_str", code);
+
+            // Đoạn script Python Tracer đã được cập nhật để phân loại List và Primative
+            const pythonTracerCode = `
+import sys
+import io
+import json
+
+trace_log = []
+output_buffer = io.StringIO()
+
+def trace_calls(frame, event, arg):
+    if event == 'line' and frame.f_code.co_filename == '<user_code>':
+        locals_copy = {}
+        combined_vars = {**frame.f_globals, **frame.f_locals}
+        
+        for k, v in combined_vars.items():
+            if not k.startswith('__') and type(v) in (int, float, str, bool, list, dict, tuple):
+                # Bắt định dạng là list/tuple để giao diện JS vẽ nhiều khối
+                if isinstance(v, (list, tuple)):
+                    locals_copy[k] = {"type": "list", "val": [repr(x) for x in v]}
+                else:
+                    locals_copy[k] = {"type": "prim", "val": repr(v)}
+                    
+        trace_log.append({
+            "line": frame.f_lineno,
+            "vars": locals_copy
+        })
+    return trace_calls
+
+old_stdout = sys.stdout
+sys.stdout = output_buffer
+error_msg = None
+
+try:
+    compiled_code = compile(user_code_str, '<user_code>', 'exec')
+    sys.settrace(trace_calls)
+    global_scope = {"__name__": "__main__"}
+    exec(compiled_code, global_scope)
+except Exception as e:
+    error_msg = str(e)
+finally:
+    sys.settrace(None)
+    sys.stdout = old_stdout
+
+result = {
+    "trace": trace_log,
+    "output": output_buffer.getvalue(),
+    "error": error_msg
+}
+json.dumps(result)
+`;
+            try {
+                let resultJson = await pyodideInstance.runPythonAsync(pythonTracerCode);
+                let result = JSON.parse(resultJson);
+
+                if (result.error) {
+                    printToConsole("[Python Error] " + result.error, "error");
+                    runBtn.disabled = false;
+                    activeLine.style.display = 'none';
+                    return;
+                }
+
+                setupTrace(result.trace, result.output);
+            } catch (err) {
+                printToConsole("[System Error] " + err.message, "error");
+                runBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

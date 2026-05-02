@@ -1,0 +1,2288 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>PVT Robotic Coding</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <script src="https://unpkg.com/blockly/python_compressed"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='black'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-family='Arial' font-weight='bold' font-size='50' fill='%2306b6d4'>PVT</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* --- 1. CẤU HÌNH CHUNG & DARK MODE (Mặc định) --- */
+        
+        :root {
+            /* Dark Variables */
+            --bg-dark-main: #061E29;
+            --bg-dark-panel: #1D546D;
+            --text-dark-main: #F3F4F4;
+            --accent-dark: #5F9598;
+            
+            /* Light Variables */
+            --bg-light-main: #F9F8F6;
+            --bg-light-panel: #EFE9E3;
+            --border-light: #D9CFC7;
+            --accent-light: #C9B59C;
+            --text-light-main: #4a453f;
+        }
+
+        body { 
+            background: var(--bg-dark-main) !important; 
+            color: var(--text-dark-main) !important; 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            font-family: 'Inter', sans-serif; 
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark-main); }
+        ::-webkit-scrollbar-thumb { background: var(--bg-dark-panel); border-radius: 4px; border: 1px solid var(--bg-dark-main); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-dark); }
+
+        /* SweetAlert Customization */
+        .custom-swal-popup {
+            background: var(--bg-dark-main) !important;
+            border: 2px solid var(--accent-dark) !important;
+            box-shadow: 0 0 20px rgba(95, 149, 152, 0.3) !important;
+            border-radius: 20px !important;
+        }
+        .custom-swal-title { color: var(--accent-dark) !important; }
+        div:where(.swal2-container) div:where(.swal2-popup) { color: var(--text-dark-main) !important; }
+
+        /* Override Header & Panels for Dark Mode */
+        header {
+            background-color: rgba(6, 30, 41, 0.9) !important; /* #061E29 with opacity */
+            border-bottom: 1px solid var(--bg-dark-panel) !important;
+        }
+
+        /* Override Right Panel Background (Class bg-[#0B0F19]) */
+        .bg-\[\#0B0F19\] {
+            background-color: #0d2633 !important; 
+            border-left: 1px solid var(--bg-dark-panel) !important;
+        }
+        
+        /* Override Main Content Background (Class bg-[#020617]) */
+        .bg-\[\#020617\] {
+            background-color: var(--bg-dark-main) !important;
+        }
+
+        /* Terminal Background */
+        .bg-black\/80 {
+            background-color: rgba(29, 84, 109, 0.3) !important;
+            border: 1px solid var(--bg-dark-panel) !important;
+        }
+
+        /* Canvas Container */
+        /* =========================================
+       4. SIMULATION MAP STYLES
+       ========================================= */
+
+        /* Container Canvas - Dark Mode */
+        #simCanvas {
+            background-color: #061E29 !important; /* Màu nền Dark */
+            border: 2px solid #5F9598 !important; /* Viền màu Accent */
+            box-shadow: 0 0 20px rgba(95, 149, 152, 0.15) !important; /* Glow nhẹ */
+            border-radius: 12px;
+        }
+
+        /* Container Canvas - Light Mode */
+        
+
+        /* Button Overrides (Dark Mode) */
+        #mapMenuBtn, #mapSelectMenuBtn {
+            background-color: rgba(29, 84, 109, 0.5) !important; 
+            border-color: var(--bg-dark-panel) !important;
+            color: var(--text-dark-main) !important;
+        }
+        #mapMenuBtn:hover, #mapSelectMenuBtn:hover {
+            border-color: var(--accent-dark) !important;
+        }
+
+        /* Dropdown Menus */
+        #mapMenuContent, #mapSelectMenuContent {
+            background-color: var(--bg-dark-main) !important;
+            border: 1px solid var(--bg-dark-panel) !important;
+        }
+
+        /* --- BLOCKLY DARK THEME CUSTOMIZATION --- */
+        .blocklySvg { background-color: var(--bg-dark-main) !important; } 
+        .blocklyToolboxDiv { 
+            background-color: var(--bg-dark-main) !important; 
+            border-right: 1px solid var(--bg-dark-panel);
+        }
+        .blocklyFlyoutBackground { fill: var(--bg-dark-panel) !important; fill-opacity: 0.9 !important; }
+        .blocklyTreeLabel { color: var(--text-dark-main) !important; }
+        .blocklyMainWorkspaceScrollbar, .blocklyFlyoutScrollbar { opacity: 0.5; }
+
+        /* ==================================================================
+       3. TOGGLE MENUS & TIMER STYLING (THEME SYNC)
+       ================================================================== */
+
+        /* --- A. TOGGLE BUTTONS (Tools & Maps) --- */
+
+        /* 1. Dark Mode (Mặc định) 
+        Palette: #1D546D (Panel), #5F9598 (Accent) */
+        #mapMenuBtn, #mapSelectMenuBtn {
+            /* Gradient nhẹ từ màu Panel để tạo khối */
+            background: linear-gradient(180deg, rgba(29, 84, 109, 0.6) 0%, rgba(29, 84, 109, 0.8) 100%) !important;
+            border: 1px solid rgba(95, 149, 152, 0.3) !important; /* Viền Accent mờ */
+            color: #F3F4F4 !important;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
+        }
+
+        #mapMenuBtn:hover, #mapSelectMenuBtn:hover {
+            border-color: #5F9598 !important; /* Viền sáng lên khi hover */
+            background: rgba(29, 84, 109, 1) !important;
+            box-shadow: 0 0 10px rgba(95, 149, 152, 0.3) !important; /* Glow nhẹ */
+            transform: translateY(-1px);
+        }
+
+        /* Icon và Text nhỏ bên trong nút Dark Mode */
+        #mapMenuBtn svg, #mapSelectMenuBtn svg { color: #5F9598 !important; }
+        #mapMenuBtn span.text-slate-500, #mapSelectMenuBtn span.text-slate-500 { color: #94a3b8 !important; }
+
+        .blocklyMainWorkspaceScrollbar, 
+        .blocklyFlyoutScrollbar { 
+            display: none !important; 
+        }
+
+        /* 2. TOOLBOX (Thanh danh mục bên trái) */
+        /* Dark Mode */
+        .blocklyToolboxDiv { 
+            background-color: var(--bg-dark-main) !important; 
+            border-right: 1px solid var(--bg-dark-panel) !important;
+        }
+        
+        /* Light Mode */
+        body.light-mode .blocklyToolboxDiv {
+            background-color: #ffffff !important; /* Nền trắng sạch */
+            border-right: 1px solid var(--border-light) !important;
+            box-shadow: 4px 0 24px rgba(201, 181, 156, 0.1) !important; /* Bóng nhẹ */
+        }
+
+        /* 3. TEXT & ICONS IN TOOLBOX */
+        .blocklyTreeLabel { 
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            padding-left: 8px;
+        }
+        /* Màu chữ Dark */
+        .blocklyTreeLabel { color: var(--text-dark-main) !important; }
+        
+        /* Màu chữ Light */
+        body.light-mode .blocklyTreeLabel { color: #5d4037 !important; }
+
+        /* 4. BACKGROUND VÙNG CODE (Workspace) */
+        .blocklySvg { 
+            background-color: var(--bg-dark-main) !important; 
+            outline: none !important; /* Bỏ viền xanh khi focus */
+        }
+        body.light-mode .blocklySvg { 
+            background-color: var(--bg-light-main) !important; 
+        }
+
+        /* 5. FLYOUT (Menu kéo ra) */
+        /* Dark */
+        .blocklyFlyoutBackground { 
+            fill: var(--bg-dark-panel) !important; 
+            fill-opacity: 0.95 !important; 
+        }
+        /* Light */
+        body.light-mode .blocklyFlyoutBackground { 
+            fill: #ffffff !important; 
+            fill-opacity: 0.98 !important; 
+            stroke: var(--border-light) !important; /* Viền flyout */
+        }
+
+
+        /* 2. Light Mode 
+        Palette: #ffffff (Nền nút), #C9B59C (Accent Camel), #5d4037 (Text Nâu) */
+        body.light-mode #mapMenuBtn, 
+        body.light-mode #mapSelectMenuBtn {
+            background: #ffffff !important;
+            border: 1px solid #D9CFC7 !important; /* Viền màu be nhạt */
+            color: #5d4037 !important; /* Chữ nâu đậm */
+            box-shadow: 0 2px 5px rgba(201, 181, 156, 0.1) !important;
+        }
+
+        body.light-mode #mapMenuBtn:hover, 
+        body.light-mode #mapSelectMenuBtn:hover {
+            border-color: #C9B59C !important; /* Viền màu Camel nổi bật */
+            background: #F9F8F6 !important;
+            box-shadow: 0 4px 12px rgba(201, 181, 156, 0.3) !important;
+        }
+
+        /* Icon và Text nhỏ bên trong nút Light Mode */
+        body.light-mode #mapMenuBtn svg, 
+        body.light-mode #mapSelectMenuBtn svg { 
+            color: #C9B59C !important; /* Icon màu Accent */
+        }
+        body.light-mode #mapMenuBtn span.text-slate-500, 
+        body.light-mode #mapSelectMenuBtn span.text-slate-500 { 
+            color: #a89f91 !important; /* Text phụ màu nâu nhạt */
+        }
+
+
+        /* --- B. SIMULATION TIMER (Đồng hồ) --- */
+
+        /* 1. Dark Mode Timer */
+        /* Tìm thẻ div chứa đồng hồ (dựa vào class bg-slate-950/50 có sẵn trong HTML) */
+        header .bg-slate-950\/50 {
+            background-color: rgba(0, 0, 0, 0.4) !important;
+            border: 1px solid #1D546D !important;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5) !important;
+        }
+        
+        #simulationTimer {
+            color: #5F9598 !important; /* Số màu xanh Teal */
+            text-shadow: 0 0 5px rgba(95, 149, 152, 0.5); /* Hiệu ứng đèn Led */
+            font-family: 'Courier New', Courier, monospace; /* Font số điện tử */
+        }
+        
+        /* Icon đồng hồ Dark Mode */
+        header .bg-slate-950\/50 svg { color: #5F9598 !important; }
+
+
+        /* 2. Light Mode Timer */
+        body.light-mode header .bg-slate-950\/50 {
+            background-color: #ffffff !important;
+            border: 1px solid #C9B59C !important; /* Viền màu Camel */
+            box-shadow: inset 0 2px 4px rgba(201, 181, 156, 0.15) !important;
+        }
+
+        body.light-mode #simulationTimer {
+            color: #5d4037 !important; /* Số màu nâu đậm rõ ràng */
+            text-shadow: none !important;
+            font-weight: 800;
+        }
+
+        /* Icon đồng hồ Light Mode */
+        body.light-mode header .bg-slate-950\/50 svg { color: #C9B59C !important; }
+
+        /* --- 2. GIAO DIỆN LIGHT MODE --- */
+        
+        body.light-mode {
+            background: var(--bg-light-main) !important; 
+            color: var(--text-light-main) !important; 
+        }
+
+        /* Scrollbar Light */
+        body.light-mode ::-webkit-scrollbar-track { background: var(--bg-light-main); }
+        body.light-mode ::-webkit-scrollbar-thumb { background: var(--border-light); }
+        body.light-mode ::-webkit-scrollbar-thumb:hover { background: var(--accent-light); }
+
+        /* Header Light */
+        body.light-mode header {
+            background-color: rgba(239, 233, 227, 0.9) !important; /* #EFE9E3 */
+            border-bottom: 1px solid var(--border-light) !important;
+            box-shadow: 0 4px 6px -1px rgba(201, 181, 156, 0.1);
+        }
+
+        /* Logo Text Colors in Light Mode */
+        body.light-mode h1 { color: #5d4037 !important; }
+        body.light-mode p.text-blue-500 { color: var(--accent-light) !important; }
+
+        /* Panels & Backgrounds Light Override */
+        body.light-mode .bg-\[\#020617\] { background-color: var(--bg-light-main) !important; } /* Main Area */
+        body.light-mode .bg-\[\#0B0F19\] {
+            background-color: var(--bg-light-panel) !important; /* Right Panel */
+            border-left: 1px solid var(--border-light) !important;
+            color: var(--text-light-main) !important;
+        }
+
+        /* Inner Cards in Right Panel */
+        body.light-mode .bg-slate-900\/40,
+        body.light-mode .bg-slate-950\/80 {
+            background-color: #ffffff !important;
+            border: 1px solid var(--border-light) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+
+        /* Canvas Light */
+        body.light-mode #simCanvas {
+            background-color: #ffffff !important; /* Nền trắng sạch */
+            border: 2px solid #C9B59C !important; /* Viền màu Camel */
+            box-shadow: 0 10px 30px rgba(201, 181, 156, 0.25) !important; /* Bóng đổ mềm */
+        }
+
+        /* Terminal Light */
+        body.light-mode .bg-black\/80 {
+            background-color: #f1f0eb !important; 
+            border: 1px solid var(--border-light) !important;
+        }
+        body.light-mode .bg-\[\#0f1218\] { /* Terminal Header */
+            background-color: var(--bg-light-panel) !important;
+            border-bottom: 1px solid var(--border-light) !important;
+        }
+        body.light-mode #terminalLog { color: #5d4037 !important; }
+
+        /* Buttons Light */
+        body.light-mode #mapMenuBtn, 
+        body.light-mode #mapSelectMenuBtn {
+            background: #ffffff !important;
+            color: var(--text-light-main) !important;
+            border: 1px solid var(--border-light) !important;
+            box-shadow: 0 2px 5px rgba(201, 181, 156, 0.15); 
+        }
+        body.light-mode #mapMenuBtn:hover, 
+        body.light-mode #mapSelectMenuBtn:hover {
+            border-color: var(--accent-light) !important;
+            background: var(--bg-light-panel) !important;
+        }
+        
+        /* Dropdown Menus Light */
+        body.light-mode #mapMenuContent,
+        body.light-mode #mapSelectMenuContent {
+            background: #ffffff !important;
+            border: 1px solid var(--border-light) !important;
+            box-shadow: 0 10px 30px rgba(201, 181, 156, 0.2); 
+        }
+        body.light-mode #mapMenuContent button,
+        body.light-mode #mapSelectMenuContent button {
+            color: var(--text-light-main) !important;
+        }
+        body.light-mode #mapMenuContent button:hover,
+        body.light-mode #mapSelectMenuContent button:hover {
+            background-color: var(--bg-light-panel) !important;
+            color: var(--accent-light) !important;
+        }
+
+        /* Text Colors Utility Overrides for Light Mode */
+        body.light-mode span.text-slate-300 { color: var(--text-light-main) !important; }
+        body.light-mode span.text-slate-500 { color: #8d7f71 !important; }
+        body.light-mode .text-slate-400 { color: #8d7f71 !important; }
+        body.light-mode .text-slate-200 { color: #3e3e3e !important; }
+
+        /* Blockly Light Override */
+        body.light-mode .blocklyToolboxDiv {
+            background-color: var(--bg-light-panel) !important;
+            border-right: 1px solid var(--border-light);
+        }
+        body.light-mode .blocklyTreeLabel { color: var(--text-light-main) !important; font-weight: 600; }
+        body.light-mode .blocklyFlyoutBackground { fill: var(--bg-light-panel) !important; fill-opacity: 0.98 !important; }
+        body.light-mode .blocklySvg { background-color: var(--bg-light-main) !important; }
+        body.light-mode .blocklyTreeRow::before { background: rgba(201, 181, 156, 0.2); } /* Icon placeholder */
+    </style>
+</head>
+<body>
+    <header class="h-16 bg-[#050505]/90 backdrop-blur-md border-b border-slate-800 flex items-center px-6 z-20 sticky top-0">
+        
+        <!-- NÚT QUAY VỀ TRANG CHỦ (MỚI THÊM) -->
+        <a href="index.html" class="mr-4 group flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900/80 border border-slate-700/50 hover:border-cyan-500/50 hover:bg-cyan-500/10 text-slate-400 hover:text-cyan-500 transition-all shadow-lg active:scale-95" title="Quay lại Trang Chủ">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+            </svg>
+        </a>
+
+        <!-- LOGO CLB (ĐÃ SỬA LẠI ĐỂ CLICK ĐƯỢC) -->
+        <div class="flex items-center gap-4 border-l border-slate-800/80 pl-4">
+            <div class="relative group">
+                <div class="absolute -inset-1 bg-gradient-to-r from-blue-600 to-cyan-600 rounded blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                <div class="relative bg-black border border-slate-800 text-white w-9 h-9 flex items-center justify-center rounded-lg font-black text-lg shadow-2xl">
+                    <span class="bg-gradient-to-br from-blue-400 to-cyan-300 bg-clip-text text-transparent">P</span>
+                </div>
+            </div>
+            <div>
+                <h1 class="font-bold text-slate-200 tracking-tight text-sm uppercase leading-tight">Phan Văn Trị</h1>
+                <a href="index.html" class="block text-[10px] text-blue-500 font-semibold tracking-widest hover:text-cyan-400 transition-colors">ROBOTIC CODING</a>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 px-4 border-l border-slate-800/80 ml-auto"> 
+            <div class="relative z-50">
+                <button onclick="toggleMapMenu()" id="mapMenuBtn" class="
+                    group flex items-center gap-3 px-3 py-2 
+                    bg-slate-900/80 backdrop-blur-md 
+                    border border-slate-700/50 hover:border-cyan-500/50 
+                    rounded-xl shadow-lg transition-all duration-300 
+                    hover:-translate-y-0.5 active:scale-95 w-[160px]
+                ">
+                    <div class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800/50 border border-slate-700 group-hover:border-cyan-500/30 group-hover:bg-cyan-500/10 transition-colors">
+                        <svg class="w-4 h-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex flex-col items-start flex-1 min-w-0">
+                        <span class="text-[9px] text-slate-500 font-bold uppercase tracking-tighter leading-none group-hover:text-cyan-500/80 transition-colors">Tools</span>
+                        <span class="text-[11px] font-bold text-slate-300 group-hover:text-white truncate w-full">Công cụ Map</span>
+                    </div>
+                    <svg class="w-3 h-3 text-slate-600 group-hover:text-cyan-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div id="mapMenuContent" class="absolute top-12 left-0 w-48 flex flex-col gap-1 p-1.5 rounded-xl bg-[#0f111a] border border-slate-700 shadow-2xl origin-top-left transition-all duration-200 ease-out opacity-0 scale-95 pointer-events-none translate-y-2">
+                    <button onclick="saveCode(); toggleMapMenu()" class="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all text-xs font-medium w-full text-left">
+                        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                        <span>Lưu Code</span>
+                    </button>
+                    <button onclick="loadCode(); toggleMapMenu()" class="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all text-xs font-medium w-full text-left">
+                        <svg class="w-4 h-4 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        <span>Mở Code</span>
+                    </button>
+                    <button onclick="importMap(); toggleMapMenu()" class="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all text-xs font-medium w-full text-left">
+                        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                        <span>Mở Bản đồ</span>
+                    </button>
+                    <button onclick="toTools(); toggleMapMenu()" class="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all text-xs font-medium w-full text-left">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                        </svg>
+                        <span>Mở web công cụ</span>
+                    </button>
+
+                    <div class="h-px bg-slate-700 my-1"></div>
+                    <button onclick="toggleRandomMapMode(); toggleMapMenu()" class="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all text-xs font-medium w-full text-left">
+                        <div id="randomStatusDot" class="w-2 h-2 rounded-full bg-slate-600"></div>
+                        <span id="randomMapText">Map ngẫu nhiên: TẮT</span>
+                    </button>
+
+                    <div class="h-px bg-slate-700 my-1"></div> 
+                    <button onclick="toggleTheme(); toggleMapMenu()" class="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all text-xs font-medium w-full text-left">
+                        <svg id="themeIcon" class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <span id="themeText">Chế độ Sáng</span>
+                    </button>
+
+                    <!-- <div class="h-px bg-slate-700 my-1"></div>
+                    <button onclick="contactOfMage(); toggleMapMenu()" class="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all text-xs font-medium w-full text-left">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"></path>
+                        </svg>
+                        <span>Liên hệ</span>
+                    </button> -->
+
+                </div>
+            </div>
+
+            <div class="relative z-50">
+                <button onclick="toggleSelectMapMenu()" id="mapSelectMenuBtn" class="
+                    group flex items-center gap-3 px-3 py-2 
+                    bg-slate-900/80 backdrop-blur-md 
+                    border border-slate-700/50 hover:border-blue-500/50 
+                    rounded-xl shadow-lg transition-all duration-300 
+                    hover:-translate-y-0.5 active:scale-95 w-[160px]
+                ">
+                    <div class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800/50 border border-slate-700 group-hover:border-blue-500/30 group-hover:bg-blue-500/10 transition-colors">
+                        <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                        </svg>
+                    </div>
+                    <div class="flex flex-col items-start flex-1 min-w-0">
+                        <span class="text-[9px] text-slate-500 font-bold uppercase tracking-tighter leading-none group-hover:text-blue-500/80 transition-colors">Maps</span>
+                        <span class="text-[11px] font-bold text-slate-300 group-hover:text-white truncate w-full">Chọn Màn</span>
+                    </div>
+                    <svg class="w-3 h-3 text-slate-600 group-hover:text-blue-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div id="mapSelectMenuContent" class="absolute top-12 left-0 w-48 max-h-[300px] overflow-y-auto flex flex-col gap-1 p-1.5 rounded-xl bg-[#0f111a] border border-slate-700 shadow-2xl origin-top-left transition-all duration-200 ease-out opacity-0 scale-95 pointer-events-none translate-y-2 custom-scrollbar">
+                    </div>
+            </div>
+
+        </div>
+
+         <div class="flex items-center gap-3"> 
+            <button onclick="changeRobotSkin()" class="ml-2 px-2 py-1 bg-slate-800 hover:bg-cyan-600 border border-slate-700 rounded text-[10px] text-white transition-all shadow-lg active:scale-95" title="Đổi giao diện Robot">
+                🎭 Đổi Skin
+            </button>
+
+            <div class="flex items-center gap-2 px-4 py-1.5 mr-2 rounded-lg bg-slate-950/50 border border-slate-800 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span id="simulationTimer" class="font-mono text-white-400 font-bold text-sm tracking-wider">00:00:000</span>
+            </div>
+
+            <button onclick="resetSim2()" class="w-9 h-9 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white transition-all border border-slate-700 shadow-lg" title="Đặt lại">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            </button>
+
+            <button onclick="stopProject()" class="flex items-center gap-2 pl-3 pr-4 py-1.5 rounded-full bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 hover:border-red-400 transition-all active:scale-95 group">
+                <div class="w-2 h-2 rounded bg-red-500 group-hover:animate-pulse"></div>
+                <span class="text-xs font-bold">DỪNG</span>
+            </button>
+
+            <button onclick="runProject()" class="relative flex items-center gap-2 pl-4 pr-6 py-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-900/40 transition-all hover:-translate-y-0.5 active:scale-95 active:translate-y-0 border border-white/10 group">
+                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                <span class="text-xs font-bold tracking-wide">CHẠY LỆNH</span>
+                <span class="absolute right-3 top-2.5 flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-50"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-white/80"></span>
+                </span>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden bg-[#020617]"> <div class="flex-1 relative border-r border-slate-800 group">
+            <div class="absolute inset-0 z-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none"></div>
+            <div id="blocklyDiv" class="absolute inset-0 z-10"></div>
+        </div>
+        
+        <div class="w-[400px] bg-[#0B0F19] flex flex-col p-5 gap-5 border-l border-slate-800 shadow-2xl overflow-y-auto relative z-20">
+            
+            <div class="bg-slate-900/40 p-4 rounded-2xl border border-slate-800 shadow-xl backdrop-blur-sm transition-all hover:border-slate-700 hover:bg-slate-900/60 w-fit mx-auto">
+                <div class="flex justify-between items-center mb-4 gap-8">
+                    <div class="flex items-center gap-2">
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                        </span>
+                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Simulation View</p>
+                    </div>
+
+                    <div class="bg-slate-950/80 px-3 py-1.5 rounded-lg border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.1)] flex items-center gap-2">
+                        <span class="text-lg leading-none">💎</span>
+                        <div class="flex flex-col">
+                            <span class="text-[8px] text-slate-500 font-bold uppercase leading-none">ROBOT</span>
+                            <span class="text-[12px] text-blue-400 font-mono font-bold leading-none" id="invCount">0</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/80 px-3 py-1.5 rounded-lg border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.1)] flex items-center gap-2">
+                        <span class="text-lg leading-none">📥</span>
+                        <div class="flex flex-col">
+                            <span class="text-[8px] text-slate-500 font-bold uppercase leading-none">Hộp</span>
+                            <span class="text-[12px] text-blue-400 font-mono font-bold leading-none" id="beinvCount">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="relative flex justify-center items-center mx-auto rounded-lg border border-slate-700/50 shadow-2xl bg-black overflow-hidden w-[340px] h-[340px]">
+                    <canvas id="simCanvas" width="340" height="340" class="block cursor-crosshair"></canvas>
+                    <div class="absolute inset-0 pointer-events-none border border-white/5 rounded-lg mix-blend-overlay"></div>
+                </div>
+                
+                <div class="mt-3 text-center">
+                    <p class="text-[9px] text-slate-600 italic">Map Size: 20x20 | Robot: Ready</p>
+                </div>
+            </div>
+
+            <div class="bg-black/80 rounded-xl border border-slate-800 flex flex-col shadow-inner min-h-[250px] overflow-hidden group w-[372px] mx-auto">
+                <div class="flex justify-between items-center px-4 py-2 border-b border-slate-800 bg-[#0f1218]">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-3 h-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span class="text-[10px] font-bold text-slate-300 uppercase tracking-wider group-hover:text-emerald-400 transition-colors"> Terminal / Serial </span>
+                    </div>
+                    
+                    <div class="flex gap-2 opacity-50 hover:opacity-100 transition-opacity">
+                        <div class="w-2 h-2 rounded-full bg-red-500/50"></div>
+                        <div class="w-2 h-2 rounded-full bg-yellow-500/50"></div>
+                        <div class="w-2 h-2 rounded-full bg-green-500/50"></div>
+                    </div>
+                </div>
+                
+                <div class="relative flex-1 p-1 bg-[#050505] min-h-[180px]">
+                    <div id="terminalLog" class="absolute inset-0 p-3 text-[11px] font-mono text-emerald-500/90 overflow-auto space-y-1 leading-relaxed custom-scrollbar">
+                        <div class="text-slate-600 italic mb-2">> Hệ thống đã sẵn sàng...</div>
+                        </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #050505; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
+    </style>
+
+    <xml id="toolbox" style="display: none">
+        <category name="CƠ BẢN" colour="#2196F3" css-class="cat-basic">
+            <block type="yolo_start"></block>
+            <block type="yolo_loop_forever"></block>
+            <block type="yolo_after_seconds"></block>
+            <block type="base_delay"><value name="DELAY"><block type="math_number"><field name="NUM">1</field></block></value></block>
+            <block type="base_wait_until"></block>
+        </category>
+
+        <category name="VÒNG LẶP" colour="#4CAF50" css-class="cat-loops">
+            <block type="controls_repeat_ext"><value name="TIMES"><block type="math_number"><field name="NUM">10</field></block></value></block>
+            <block type="controls_whileUntil"></block>
+            <block type="controls_for"></block>
+            <block type="controls_forEach"></block>
+            <block type="controls_flow_statements"></block>
+        </category>
+
+        <category name="LOGIC" colour="#5C6BC0" css-class="cat-logic">
+            <block type="controls_if"></block>
+            <block type="controls_if"><mutation else="1"></mutation></block>
+            <block type="logic_compare"></block>
+            <block type="logic_operation"></block>
+            <block type="logic_negate"></block>
+            <block type="logic_boolean"></block>
+        </category>
+
+        <category name="TÍNH TOÁN" colour="#3F51B5" css-class="cat-math">
+            <block type="math_number"></block>
+            <block type="text_to_num"></block>
+            <block type="math_arithmetic">
+                <field name="OP">MODULO</field>
+                <value name="A">
+                    <shadow type="math_number">
+                        <field name="NUM">1</field>
+                    </shadow>
+                </value>
+                <value name="B">
+                    <shadow type="math_number">
+                        <field name="NUM">1</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="math_single">
+                <value name="NUM">
+                    <shadow type="math_number">
+                        <field name="NUM">9</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="math_round">
+                <value name="NUM">
+                    <shadow type="math_number">
+                        <field name="NUM">3.1</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="math_random_int">
+                <value name="FROM">
+                    <shadow type="math_number">
+                        <field name="NUM">1</field>
+                    </shadow>
+                </value>
+                <value name="TO">
+                    <shadow type="math_number">
+                        <field name="NUM">100</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="math_map_range"></block>
+        </category>
+
+        <category name="CHỮ VIẾT" colour="#009688" css-class="cat-text">
+            <block type="text"></block>
+            <block type="text_join"></block>
+            <block type="text_len">
+                <value name="TEXT">
+                    <shadow type="text">
+                        <field name="TEXT">abc</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="join_2_text">
+                <value name="TEXT_1">
+                    <shadow type="text">
+                        <field name="TEXT">abc</field>
+                    </shadow>
+                </value>
+                <value name="TEXT_2">
+                    <shadow type="text">
+                        <field name="TEXT">def</field>
+                    </shadow>
+                </value>
+            </block>
+            <block type="text_print_serial"></block>
+        </category>
+
+        <category name="CẢM BIẾN" colour="#009900" css-class="cat-move">
+            <block type="distance_sensor"></block>
+            <block type="under_sensor"></block>
+        </category>
+
+        <category name="DI CHUYỂN" colour="#D32F2F" css-class="cat-move">
+            <block type="robot_move"></block>
+            <block type="robot_turn_simple"></block>
+        </category>
+
+        <category name="BIẾN" colour="#FFA000" custom="VARIABLE" css-class="cat-var"></category>
+
+        <category name="DANH SÁCH" colour="#673AB7" css-class="cat-list">
+            <block type="lists_create_empty"></block>
+            <block type="lists_create_with"></block>
+            <block type="lists_length"></block>
+            <block type="lists_push"></block>
+            <block type="lists_isEmpty"></block>
+            <block type="lists_getIndex">
+                <value name="VALUE"><block type="variables_get"><field name="VAR">list</field></block></value>
+            </block>
+            <block type="lists_setIndex">
+                <value name="LIST"><block type="variables_get"><field name="VAR">list</field></block></value>
+            </block>
+        </category>
+
+        <category name="HÀM" colour="#AB47BC" custom="PROCEDURE" css-class="cat-func"></category>
+    </xml>
+
+    <script>
+        // --- 1. CẤU HÌNH NGÔN NGỮ TIẾNG VIỆT ---
+        
+        // Cấu trúc điều khiển (If/Else)
+        Blockly.Msg["CONTROLS_IF_MSG_IF"] = "nếu";
+        Blockly.Msg["CONTROLS_IF_MSG_ELSEIF"] = "nếu không thì nếu";
+        Blockly.Msg["CONTROLS_IF_MSG_ELSE"] = "nếu không thì";
+        Blockly.Msg["CONTROLS_IF_MSG_THEN"] = "thực hiện";
+
+        // Vòng lặp (Loops)
+        Blockly.Msg["CONTROLS_REPEAT_TITLE"] = "lặp lại %1 lần";
+        Blockly.Msg["CONTROLS_REPEAT_INPUT_DO"] = "thực hiện";
+        Blockly.Msg["CONTROLS_WHILEUNTIL_OPERATOR_WHILE"] = "lặp lại trong khi";
+        Blockly.Msg["CONTROLS_WHILEUNTIL_OPERATOR_UNTIL"] = "lặp lại cho đến khi";
+        Blockly.Msg["CONTROLS_FOR_TITLE"] = "cho biến %1 chạy từ %2 đến %3 bước nhảy %4";
+        Blockly.Msg["CONTROLS_FOR_TOOLTIP"] = "Đếm số từ bắt đầu đến kết thúc theo bước nhảy.";
+        Blockly.Msg["CONTROLS_FOREACH_TITLE"] = "với mỗi mục %1 trong danh sách %2";
+        Blockly.Msg["CONTROLS_FOREACH_TOOLTIP"] = "Lặp qua từng phần tử có trong danh sách.";
+
+        // Ngắt/Tiếp tục vòng lặp
+        Blockly.Msg["CONTROLS_FLOW_STATEMENTS_OPERATOR_BREAK"] = "ngắt vòng lặp";
+        Blockly.Msg["CONTROLS_FLOW_STATEMENTS_OPERATOR_CONTINUE"] = "bỏ qua lượt này";
+        Blockly.Msg["CONTROLS_FLOW_STATEMENTS_TOOLTIP_BREAK"] = "Thoát khỏi vòng lặp bao quanh nó.";
+        Blockly.Msg["CONTROLS_FLOW_STATEMENTS_TOOLTIP_CONTINUE"] = "Bỏ qua phần còn lại của vòng lặp này và chuyển sang lần lặp tiếp theo.";
+
+        // Logic (Đúng/Sai/Và/Hoặc/Không)
+        Blockly.Msg["LOGIC_BOOLEAN_TRUE"] = "đúng";
+        Blockly.Msg["LOGIC_BOOLEAN_FALSE"] = "sai";
+        Blockly.Msg["LOGIC_OPERATION_AND"] = "và";
+        Blockly.Msg["LOGIC_OPERATION_OR"] = "hoặc";
+        Blockly.Msg["LOGIC_NEGATE_TITLE"] = "không phải %1";
+        Blockly.Msg["LOGIC_NULL"] = "rỗng";
+
+        // Toán học (Math)
+        Blockly.Msg["MATH_NUMBER_TOOLTIP"] = "Một con số.";
+        Blockly.Msg["MATH_ARITHMETIC_TOOLTIP_ADD"] = "Hoàn trả tổng của hai con số.";
+        Blockly.Msg["MATH_ARITHMETIC_TOOLTIP_MINUS"] = "Hoàn trả hiệu của hai con số.";
+        Blockly.Msg["MATH_ARITHMETIC_TOOLTIP_MULTIPLY"] = "Hoàn trả tích của hai con số.";
+        Blockly.Msg["MATH_ARITHMETIC_TOOLTIP_DIVIDE"] = "Hoàn trả thương của hai con số.";
+        Blockly.Msg["MATH_MODULO_SYMBOL"] = "%";
+        
+        // Toán học nâng cao (Math Single/Round)
+        Blockly.Msg["MATH_SINGLE_OP_ROOT"] = "căn bậc hai";
+        Blockly.Msg["MATH_SINGLE_OP_ABS"] = "giá trị tuyệt đối";
+        Blockly.Msg["MATH_SINGLE_OP_NEG"] = "số đối của";
+        Blockly.Msg["MATH_SINGLE_OP_LN"] = "ln";
+        Blockly.Msg["MATH_SINGLE_OP_LOG10"] = "log10";
+        Blockly.Msg["MATH_SINGLE_OP_EXP"] = "e mũ";
+        Blockly.Msg["MATH_SINGLE_OP_POW10"] = "10 mũ";
+        
+        Blockly.Msg["MATH_ROUND_OPERATOR_ROUND"] = "làm tròn";
+        Blockly.Msg["MATH_ROUND_OPERATOR_ROUNDUP"] = "làm tròn lên";
+        Blockly.Msg["MATH_ROUND_OPERATOR_ROUNDDOWN"] = "làm tròn xuống";
+        
+        Blockly.Msg["MATH_RANDOM_INT_TITLE"] = "số ngẫu nhiên từ %1 đến %2";
+        Blockly.Msg["MATH_RANDOM_FLOAT_TITLE_RANDOM"] = "phân số ngẫu nhiên (0.0 - 1.0)";
+
+        // Xử lý chuỗi (Text)
+        Blockly.Msg["TEXT_JOIN_TITLE_CREATEWITH"] = "tạo văn bản từ";
+        Blockly.Msg["TEXT_CREATE_JOIN_TITLE_JOIN"] = "kết nối";
+        Blockly.Msg["TEXT_TEXT_TOOLTIP"] = "Một chữ, một từ, hay một dòng.";
+        Blockly.Msg["TEXT_ISEMPTY_TITLE"] = "%1 bị rỗng";
+
+        // Biến (Variables)
+        Blockly.Msg["VARIABLES_DEFAULT_NAME"] = "vật phẩm";
+        Blockly.Msg["VARIABLES_SET"] = "đặt %1 bằng %2";
+        Blockly.Msg["VARIABLES_GET_TITLE"] = ""; 
+        Blockly.Msg["VARIABLES_GET_TOOLTIP"] = "Hoàn trả giá trị của biến này.";
+        Blockly.Msg["MATH_CHANGE_TITLE"] = "tăng biến %1 thêm %2"; 
+        
+        // Hàm (Procedures/Functions)
+        Blockly.Msg["PROCEDURES_DEFNORETURN_TITLE"] = "hàm";
+        Blockly.Msg["PROCEDURES_DEFNORETURN_PROCEDURE"] = "tên hàm";
+        Blockly.Msg["PROCEDURES_DEFNORETURN_DO"] = "";
+        Blockly.Msg["PROCEDURES_DEFRETURN_TITLE"] = "hàm";
+        Blockly.Msg["PROCEDURES_DEFRETURN_PROCEDURE"] = "tên hàm";
+        Blockly.Msg["PROCEDURES_DEFRETURN_RETURN"] = "trả về";
+        Blockly.Msg["PROCEDURES_CALLNORETURN_TOOLTIP"] = "Chạy một hàm do người dùng định nghĩa.";
+        Blockly.Msg["PROCEDURES_CALLRETURN_TOOLTIP"] = "Chạy một hàm và dùng kết quả trả về của nó.";
+
+        // Menu chuột phải (Context Menu)
+        Blockly.Msg["DUPLICATE_BLOCK"] = "Tạo bản sao";
+        Blockly.Msg["ADD_COMMENT"] = "Thêm chú thích";
+        Blockly.Msg["REMOVE_COMMENT"] = "Xóa chú thích";
+        Blockly.Msg["DELETE_BLOCK"] = "Xóa khối này";
+        Blockly.Msg["DELETE_X_BLOCKS"] = "Xóa %1 khối";
+        Blockly.Msg["DELETE_ALL_BLOCKS"] = "Xóa tất cả %1 khối?";
+        Blockly.Msg["CLEAN_UP"] = "Sắp xếp lại các khối";
+        Blockly.Msg["COLLAPSE_BLOCK"] = "Thu gọn khối";
+        Blockly.Msg["EXPAND_BLOCK"] = "Mở rộng khối";
+        Blockly.Msg["DISABLE_BLOCK"] = "Vô hiệu hóa khối";
+        Blockly.Msg["ENABLE_BLOCK"] = "Kích hoạt khối";
+        Blockly.Msg["HELP"] = "Trợ giúp";
+        Blockly.Msg["UNDO"] = "Hoàn tác (Undo)";
+        Blockly.Msg["REDO"] = "Làm lại (Redo)";
+        Blockly.Msg["NEW_VARIABLE"] = "Tạo biến mới...";
+        Blockly.Msg["RENAME_VARIABLE"] = "Đổi tên biến...";
+        Blockly.Msg["DELETE_VARIABLE"] = "Xóa biến...";
+
+        // Danh sách (Lists)
+        Blockly.Msg["LISTS_CREATE_EMPTY_TITLE"] = "tạo danh sách trống";
+        Blockly.Msg["LISTS_CREATE_WITH_INPUT_WITH"] = "tạo danh sách từ";
+        Blockly.Msg["LISTS_LENGTH_TITLE"] = "độ dài của %1";
+        Blockly.Msg["LISTS_ISEMPTY_TITLE"] = "%1 bị rỗng";
+        Blockly.Msg["LISTS_INLIST"] = "trong danh sách";
+        Blockly.Msg["LISTS_GET_INDEX_GET"] = "lấy";
+        Blockly.Msg["LISTS_GET_INDEX_FROM_START"] = "phần tử thứ";
+        Blockly.Msg["LISTS_SET_INDEX_SET"] = "đặt";
+        Blockly.Msg["LISTS_SET_INDEX_INPUT_TO"] = "bằng";
+        Blockly.Msg["LISTS_INDEX_OF_FIRST"] = "tìm sự xuất hiện đầu tiên của";
+
+        // --- 2. ĐỊNH NGHĨA KHỐI (BLOCKS) ---
+        const myBlocks = [
+            // --- NHÓM CƠ BẢN (#2196F3) ---
+            {type: 'yolo_start', message0: 'khi Yolo UNO khởi động', next: true, color: '#2196F3'},
+            {type: 'yolo_loop_forever', message0: 'lặp lại mãi mãi', message1: 'thực hiện %1', args1: [{type: 'input_statement', name: 'DO'}], prev: true, color: '#2196F3'},
+            {type: 'yolo_after_seconds', message0: 'sau mỗi %1 giây thực hiện', args0: [{type: 'input_value', name: 'SEC'}], message1: '%1', args1: [{type: 'input_statement', name: 'DO'}], prev: true, next: true, color: '#2196F3'},
+            {type: 'base_delay', message0: 'tạm dừng %1 giây', args0: [{type: 'input_value', name: 'DELAY'}], prev: true, next: true, color: '#2196F3'},
+            {type: 'base_wait_until', message0: 'chờ cho đến khi %1', args0: [{type: 'input_value', name: 'COND'}], prev: true, next: true, color: '#2196F3'},
+            
+            // --- NHÓM DI CHUYỂN (#D32F2F) ---
+            {
+                type: 'robot_move', 
+                message0: 'robot %1 1 ô', 
+                args0: [
+                    {
+                        type: 'field_dropdown', 
+                        name: 'DIR', 
+                        options: [['đi tới ↑','FW'],['đi lùi ↓','BW']]
+                    },
+                ], 
+                prev: true, next: true, color: '#D32F2F'
+            },
+            {
+                type: 'robot_turn_simple', 
+                message0: 'robot quay %1 %2 độ', 
+                args0: [
+                    {type: 'field_dropdown', name: 'DIR', options: [['phải ↷','R'],['trái ↶','L']]},
+                    {type: 'field_dropdown', name: 'DEG', options: [['45','1'], ['90','2'], ['135','3'], ['180','4']]}
+                ], 
+                prev: true, next: true, color: '#D32F2F'
+            },
+            
+            // --- NHÓM CHỮ VIẾT (#009688) ---
+            {type: 'text_print_serial', message0: 'in ra cửa sổ Serial %1', args0: [{type: 'input_value', name: 'TEXT'}], prev: true, next: true, color: '#6ca68d'},
+            {type: 'text_len', message0: 'Độ dài %1', args0: [{type: 'input_value', name: 'TEXT'}], output: 'Number', color: '#6ca68d'},
+            {type: 'join_2_text', message0: 'Nối %1 và %2 thành chuỗi mới', args0: [{type: 'input_value', name: 'TEXT_1'}, {type: 'input_value', name: 'TEXT_2'}], output: 'String', color: '#6ca68d'},
+            
+            // --- NHÓM TÍNH TOÁN (#3F51B5) ---
+            {type: 'text_to_num', message0: 'đổi chuỗi thành số %1', args0: [{type: 'input_value', name: 'VAL'}], output: 'Number', color: '#6069a6'},
+            {
+                type: 'math_random_int', 
+                message0: 'Số ngẫu nhiên từ %1 đến %2', 
+                args0: [
+                    {type: 'input_value', name: 'FROM'}, 
+                    {type: 'input_value', name: 'TO'}
+                ], 
+                output: 'Number', 
+                color: '#6069a6',
+                inputsInline: true 
+            },
+            {
+                type: 'math_arithmetic', 
+                message0: '%1 %2 %3',
+                args0: [
+                    { type: 'input_value', name: 'A', check: 'Number' },
+                    {
+                        type: 'field_dropdown',
+                        name: 'OP',
+                        options: [
+                            ["+", "ADD"],
+                            ["-", "MINUS"],
+                            ["*", "MULTIPLY"],
+                            ["/", "DIVIDE"],
+                            ["^", "POWER"],
+                            ["%", "MODULO"] 
+                        ]
+                    },
+                    { type: 'input_value', name: 'B', check: 'Number' }
+                ],
+                output: 'Number',
+                color: '#6069a6',
+                inputsInline: true 
+            },
+            {type: 'math_map_range', message0: 'đổi số %1 từ [0-1023] sang [0-100]', args0: [{type: 'input_value', name: 'VAL'}], output: 'Number', color: '#6069a6'},
+            {type: 'distance_sensor', message0: 'Đọc cảm biến khoảng cách', output: 'Number', color: '#009900'},
+            {type: 'under_sensor', message0: 'Đọc cảm biến ô bên dưới', output: 'Number', color: '#009900'},
+            {
+                type: 'lists_push',
+                message0: 'thêm %1 vào cuối danh sách %2',
+                args0: [
+                    { type: 'input_value', name: 'ITEM' },
+                    { type: 'field_variable', name: 'VAR', variable: 'list' }
+                ],
+                prev: true,
+                next: true,
+                color: '#745ba6',
+                tooltip: 'Thêm một phần tử vào cuối danh sách hiện tại'
+            },
+        ];
+
+        myBlocks.forEach(d => {
+            Blockly.Blocks[d.type] = { init: function() { 
+                this.jsonInit({ message0: d.message0, args0: d.args0, message1: d.message1, args1: d.args1, previousStatement: d.prev?null:undefined, nextStatement: d.next?null:undefined, output: d.output, colour: d.color, inputsInline: d.inputsInline });
+            }};
+            Blockly.Python[d.type] = () => `\n`;
+        });
+
+        // --- 3. KHỞI TẠO BLOCKLY ---
+        const OhStemTheme = Blockly.Theme.defineTheme('ohstem', {
+            base: Blockly.Themes.Classic,
+            componentStyles: {
+                workspaceBackgroundColour: '#020617', 
+                toolboxBackgroundColour: '#0f111a',   
+                toolboxForegroundColour: '#ffffff',
+                flyoutBackgroundColour: '#1e293b',    
+                flyoutForegroundColour: '#ccc',
+                flyoutOpacity: 0.95,
+                scrollbarColour: '#334155',
+                insertionMarkerColour: '#3b82f6',     
+                insertionMarkerOpacity: 0.3,
+            },
+            fontStyle: {
+                family: '"Inter", sans-serif',
+                weight: '600', 
+                size: 12    
+            },
+            startHats: true
+        });
+
+        const workspace = Blockly.inject('blocklyDiv', {
+            toolbox: document.getElementById('toolbox'),
+            theme: OhStemTheme, 
+            grid: { spacing: 30, length: 2, colour: '#334155', snap: true }, 
+            zoom: { startScale: 0.9, controls: true, wheel: true, pinch: true },
+            renderer: 'Thrasos' 
+        });
+
+        let isMapMenuOpen = false;
+    
+        function toggleMapMenu() {
+            isMapMenuOpen = !isMapMenuOpen;
+            const menu = document.getElementById('mapMenuContent');
+            const btn = document.getElementById('mapMenuBtn');
+
+            if (isMapMenuOpen) {
+                menu.classList.remove('opacity-0', 'scale-95', 'pointer-events-none', 'translate-y-2');
+                menu.classList.add('opacity-100', 'scale-100', 'pointer-events-auto', 'translate-y-0');
+                
+                btn.classList.add('bg-slate-800', 'text-white', 'border-slate-600');
+            } else {
+                menu.classList.add('opacity-0', 'scale-95', 'pointer-events-none', 'translate-y-2');
+                menu.classList.remove('opacity-100', 'scale-100', 'pointer-events-auto', 'translate-y-0');
+                
+                btn.classList.remove('bg-slate-800', 'text-white', 'border-slate-600');
+            }
+        }
+
+        let isRandomMapMode = false; 
+
+        function toggleRandomMapMode() {
+            isRandomMapMode = !isRandomMapMode;
+            const dot = document.getElementById('randomStatusDot');
+            const text = document.getElementById('randomMapText');
+
+            if (isRandomMapMode) {
+                dot.classList.remove('bg-slate-600');
+                dot.classList.add('bg-emerald-500', 'animate-pulse');
+                text.innerText = "Map ngẫu nhiên: BẬT";
+                
+                // Thông báo cho "baby" biết
+                const Toast = Swal.mixin({
+                    toast: true, position: 'top-end', showConfirmButton: false, timer: 2000,
+                    background: '#1e293b', color: '#fff'
+                });
+                Toast.fire({ icon: 'info', title: 'Đã bật chế độ thử thách ngẫu nhiên!' });
+            } else {
+                dot.classList.add('bg-slate-600');
+                dot.classList.remove('bg-emerald-500', 'animate-pulse');
+                text.innerText = "Map ngẫu nhiên: TẮT";
+            }
+        }
+
+        async function pickRandomMap() {
+            if (MAP_LIBRARY && MAP_LIBRARY.length > 0) {
+                const randomIndex = Math.floor(Math.random() * MAP_LIBRARY.length);
+                const selectedMap = MAP_LIBRARY[randomIndex];
+                console.log("Đã chọn map ngẫu nhiên:", selectedMap.name);
+                await loadMapFromServer(selectedMap.file);
+            }
+        }
+
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('mapMenuContent');
+            const btn = document.getElementById('mapMenuBtn');
+            if (isMapMenuOpen && !menu.contains(event.target) && !btn.contains(event.target)) {
+                toggleMapMenu();
+            }
+        });
+
+        // --- QUẢN LÝ THƯ VIỆN MAP ---
+        const MAP_LIBRARY = [
+            { name: "Bản đồ mẫu", file: "./maps/map1.json" },
+            { name: "Màn 2", file: "./maps/map2.json" },
+            { name: "Màn 3", file: "./maps/map3.json" },
+            { name: "Màn 4", file: "./maps/map4.json" },
+            { name: "Màn 5", file: "./maps/map5.json" },
+            { name: "Màn 6", file: "./maps/map6.json" },
+            { name: "Màn 7", file: "./maps/map7.json" },
+            { name: "Màn 8", file: "./maps/map8.json" },
+            { name: "Màn 9", file: "./maps/map9.json" },
+            { name: "Màn 10", file: "./maps/map10.json" },
+            { name: "Màn 11", file: "./maps/map11.json" },
+            { name: "Màn 12", file: "./maps/map12.json" },
+            { name: "Màn 13", file: "./maps/map13.json" },
+            { name: "Màn 14", file: "./maps/map14.json" },
+            { name: "Màn 15", file: "./maps/map15.json" },
+            { name: "Màn 16", file: "./maps/map16.json" },
+            { name: "Màn 17", file: "./maps/map17.json" },
+            { name: "Màn 18", file: "./maps/map18.json" },
+            { name: "Màn 19", file: "./maps/map19.json" },
+            { name: "Màn 20", file: "./maps/map20.json" }
+        ];
+
+        let isMapSelectMenuOpen = false;
+
+        function initMapLibraryMenu() {
+            const container = document.getElementById('mapSelectMenuContent');
+            container.innerHTML = MAP_LIBRARY.map((m, index) => `
+                <button onclick="loadMapFromServer('${m.file}'); toggleSelectMapMenu()" class="group flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-blue-600/10 text-slate-400 hover:text-blue-400 transition-all text-xs font-medium w-full text-left border border-transparent hover:border-blue-500/20">
+                    <div class="flex items-center gap-3">
+                        <span class="text-[10px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded group-hover:bg-blue-500 group-hover:text-white transition-colors">${index + 1}</span>
+                        <span>${m.name}</span>
+                    </div>
+                    <svg class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+            `).join('');
+        }
+
+        // 2. Đóng/Mở menu
+        function toggleSelectMapMenu() {
+            isMapSelectMenuOpen = !isMapSelectMenuOpen;
+            const menu = document.getElementById('mapSelectMenuContent');
+            const btn = document.getElementById('mapSelectMenuBtn');
+
+            if (isMapSelectMenuOpen) {
+                menu.classList.remove('opacity-0', 'scale-95', 'pointer-events-none', 'translate-y-2');
+                menu.classList.add('opacity-100', 'scale-100', 'pointer-events-auto', 'translate-y-0');
+                btn.classList.add('bg-slate-800', 'text-white', 'border-blue-500/50');
+                
+                if(isMapMenuOpen) toggleMapMenu();
+            } else {
+                menu.classList.add('opacity-0', 'scale-95', 'pointer-events-none', 'translate-y-2');
+                menu.classList.remove('opacity-100', 'scale-100', 'pointer-events-auto', 'translate-y-0');
+                btn.classList.remove('bg-slate-800', 'text-white', 'border-blue-500/50');
+            }
+        }
+
+        // 3. Hàm fetch map từ file JSON
+        async function loadMapFromServer(filePath) {
+            try {
+                const response = await fetch(filePath);
+                if (!response.ok) throw new Error("Không tìm thấy file map!");
+                const data = await response.json();
+                
+                applyMapState(data);
+                resetSim(); 
+
+                const Toast = Swal.mixin({
+                    toast: true, position: 'top-end', showConfirmButton: false, timer: 2000,
+                    background: '#1e293b', color: '#fff'
+                });
+                Toast.fire({ icon: 'success', title: `Đã tải bản đồ thành công!` });
+            } catch (err) {
+                console.error(err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Lỗi nạp bản đồ',
+                    text: 'Không thể tải file map. Hãy chắc chắn bạn đã để file trong thư mục /maps/',
+                    background: '#1e293b', color: '#fff'
+                });
+            }
+        }
+
+        // 4. Lắng nghe click bên ngoài để đóng menu
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('mapSelectMenuContent');
+            const btn = document.getElementById('mapSelectMenuBtn');
+            if (isMapSelectMenuOpen && !menu.contains(event.target) && !btn.contains(event.target)) {
+                toggleSelectMapMenu();
+            }
+        });
+
+        // Gọi khởi tạo khi trang load xong
+        initMapLibraryMenu();
+
+        // --- 4. CƠ CHẾ LƯU & NẠP (KHÓA AN TOÀN) ---
+        let isSystemLocked = true; 
+        let isRunning = false;
+        let initialMap = [];
+        let timebox = "00:00:000";
+
+        function ensureStartBlock() {
+            if (workspace.getBlocksByType('yolo_start').length === 0) {
+                const block = workspace.newBlock('yolo_start');
+                block.initSvg();
+                block.render();
+                block.moveBy(50, 50);
+            }
+        }
+
+        // 1. CẤU HÌNH & HẰNG SỐ
+        const STORAGE_KEYS = {
+            BLOCKS: 'yolo_v36_blocks',
+            MAP: 'yolo_v36_map'
+        };
+
+        const DEFAULT_MAP_CONFIG = {
+            map: [
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,4,0,0,1,0,0,0,1,0,0,0,0,0,0,0,1,2,1,1],
+                [1,1,1,0,1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,1],
+                [1,2,1,0,1,0,1,0,0,0,1,0,0,3,1,0,1,0,1,1],
+                [1,0,1,0,1,0,1,1,1,1,1,0,1,1,1,0,1,0,1,1],
+                [1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,1,1],
+                [1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1],
+                [1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,1],
+                [1,0,1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1],
+                [1,0,1,0,1,0,0,0,0,0,1,2,0,0,0,0,1,0,1,1],
+                [1,0,1,0,1,0,1,1,1,0,1,1,1,1,1,0,1,0,1,1],
+                [1,0,1,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,1,1],
+                [1,0,1,0,1,1,1,0,1,1,1,0,1,0,1,0,1,0,1,1],
+                [1,0,1,0,1,2,1,0,1,2,1,0,1,0,1,2,1,0,1,1],
+                [1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,1,1,0,1,1],
+                [1,0,0,0,1,0,0,2,0,0,1,0,1,0,0,0,0,0,1,1],
+                [1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+            ],
+            rx: 17,
+            ry: 17,
+            rd: 0
+        };
+
+        const applyMapState = (data) => {
+            try {
+                initialMap = JSON.parse(JSON.stringify(data.map));
+                map = JSON.parse(JSON.stringify(initialMap));
+                
+                robot.startX = data.rx;
+                robot.startY = data.ry;
+                robot.startDir = data.rd || 0;
+            } catch (e) {
+                console.error("Error applying map state:", e);
+            }
+        };
+
+        const saveToLocalStorage = () => {
+            if (isSystemLocked) return;
+
+            try {
+                const state = Blockly.serialization.workspaces.save(workspace);
+                const jsonText = JSON.stringify(state);
+                localStorage.setItem(STORAGE_KEYS.BLOCKS, jsonText);
+
+                const mapState = {
+                    map: map,
+                    rx: robot.startX,
+                    ry: robot.startY,
+                    rd: robot.startDir
+                };
+                localStorage.setItem(STORAGE_KEYS.MAP, JSON.stringify(mapState));
+            } catch (e) {
+                console.error("Auto-save failed:", e);
+            }
+        };
+
+        const loadFromLocalStorage = () => {
+            isSystemLocked = true;
+
+            try {
+                const savedBlocks = localStorage.getItem(STORAGE_KEYS.BLOCKS);
+                if (savedBlocks) {
+                    workspace.clear();
+                    
+                    if (savedBlocks.trim().startsWith('<')) {
+                        console.warn("Dữ liệu cũ là XML, không tương thích với phiên bản mới. Đã bỏ qua.");
+                    } else {
+                        const state = JSON.parse(savedBlocks);
+                        Blockly.serialization.workspaces.load(state, workspace);
+                    }
+                }
+            } catch (e) {
+                console.error("Load Blocks failed:", e);
+            } 
+            
+            try {
+                ensureStartBlock();
+                const savedMapJson = localStorage.getItem(STORAGE_KEYS.MAP);
+                if (savedMapJson) {
+                    const parsedMap = JSON.parse(savedMapJson);
+                    applyMapState(parsedMap);
+                } else {
+                    applyMapState(DEFAULT_MAP_CONFIG);
+                }
+                resetSim();
+            } catch (e) {
+                console.error("Load Map failed:", e);
+                applyMapState(DEFAULT_MAP_CONFIG);
+                resetSim();
+            } finally {
+                setTimeout(() => { 
+                    isSystemLocked = false; 
+                }, 500);
+            }
+        };
+
+        workspace.addChangeListener((e) => { 
+            if (e.type !== Blockly.Events.UI) saveToLocalStorage(); 
+        });
+
+        // --- 5. SIMULATION ENGINE ---
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const GRID = 20, SIZE = 17; 
+        let map = Array(GRID).fill().map(() => Array(GRID).fill(0));
+        
+        let robot = { x: 10, y: 10, dir: 0, startX: 10, startY: 10, startDir: 0, inv: 0, beinv: 0, min: 0, se: 0, mise: 0 };
+
+        function exampleMap() {
+            applyMapState(DEFAULT_MAP_CONFIG);
+            resetSim();
+        }
+
+        function numtostring(number, mode) {
+            let s = String(number);
+            let size = s.length;
+            if (size == 1) return mode == 1 ? "0" + s : "00" + s;
+            else if (size == 2) return mode == 1 ? s : "0" + s;
+            else if (mode == 2) return s;
+        }
+
+        const rb_skin = ['🤖', '🐞', '🪳', '🪲', '🕷️', '🐧', '🐮', '🗼','🪰','🐣','🐥','🦋','🎗️'];
+        //a=[]
+        let skin_index = 0;
+
+        function changeRobotSkin() {
+            skin_index++;
+            if (skin_index >= rb_skin.length) skin_index = 0;
+            localStorage.setItem('pvt_robot_skin', skin_index);
+            render();
+            const Toast = Swal.mixin({
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 1000,
+                background: '#1e293b', color: '#fff'
+            });
+            Toast.fire({ icon: 'success', title: `Baby đã đổi skin robot thành: ${rb_skin[skin_index]}` });
+        }
+
+        function loadSavedSkin() {
+            const saved = localStorage.getItem('pvt_robot_skin');
+            if (saved !== null) {
+                skin_index = parseInt(saved);
+            }
+        }
+
+        function render() {
+            ctx.clearRect(0,0,340,340);
+            const isLight = document.body.classList.contains('light-mode');
+            ctx.fillStyle = isLight ? '#f1f5f9' : '#061E29';
+            ctx.fillRect(0,0,340,340);
+
+            const gridColor = isLight ? '#EFE9E3' : '#1D546D';
+            const wallColor = isLight ? '#C9B59C' : '#5F9598';
+
+            for(let y=0; y<GRID; y++) {
+                for(let x=0; x<GRID; x++) {
+                    ctx.strokeStyle = gridColor; 
+                    ctx.strokeRect(x*SIZE, y*SIZE, SIZE, SIZE);
+                    let t = map[y][x];
+                    if(t===1) {ctx.fillStyle=wallColor; ctx.fillRect(x*SIZE+1,y*SIZE+1,SIZE-2,SIZE-2);}
+                    if(t===2) ctx.fillText('💎', x*SIZE+1, y*SIZE+13);
+                    if(t===3) ctx.fillText('📥', x*SIZE+1, y*SIZE+13);
+                    if(t===4) ctx.fillText('🚩', x*SIZE+1, y*SIZE+13);
+                }
+            }
+            ctx.save();
+            const cx = robot.x * SIZE + SIZE/2;
+            const cy = robot.y * SIZE + SIZE/2;
+            ctx.translate(cx, cy);
+            ctx.rotate(robot.dir * 45 * Math.PI / 180);
+            ctx.font = "14px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText(rb_skin[skin_index], 0, 0); 
+            // các icon tham khảo 🪳🕷️🐞🪲🤖
+            ctx.restore();
+
+            document.getElementById('invCount').innerText = robot.inv;
+            document.getElementById('beinvCount').innerText = robot.beinv;
+            if (robot.mise >= 1000) {
+                robot.se++;
+                robot.mise = robot.mise % 1000;
+            }
+
+            if (robot.se == 60) {
+                robot.min++;
+                robot.se = 0;
+            }
+
+            let mi = numtostring(robot.min, 1);
+            let sec = numtostring(robot.se, 1);
+            let minise = numtostring(robot.mise, 2);
+            document.getElementById('simulationTimer').innerText = `${mi}:${sec}:${minise}`;
+        }
+
+        // --- CÁC HÀM ĐIỀU KHIỂN CHẠY/DỪNG ---
+        async function runProject() {
+            if (isRunning) return; 
+
+            if (isRandomMapMode) {
+                await pickRandomMap(); 
+            }
+
+            isRunning = true;
+            resetSim(); 
+            
+            const top = workspace.getTopBlocks(true);
+
+            top.forEach(b => {
+                if (!b.isEnabled()) return;
+                if (b.type === 'yolo_after_seconds') {
+                    let secBlock = b.getInputTargetBlock('SEC');
+                    let sec = 1;
+                    if (secBlock && secBlock.type === 'math_number') {
+                        sec = parseFloat(secBlock.getFieldValue('NUM'));
+                    }
+                    
+                    const intervalId = setInterval(async () => {
+                        if (!isRunning) return;
+                        await runSeq(b.getInputTargetBlock('DO'));
+                    }, sec * 1000);
+                    
+                    intervals.push(intervalId);
+                }
+            });
+
+            for (let b of top) {
+                if (!isRunning) break;
+                if (!isRunning) break; 
+                if(b.type === 'yolo_start') await runSeq(b.getNextBlock());
+            }
+            isRunning = false; 
+        }
+
+        function stopProject() {
+            isRunning = false; 
+
+            intervals.forEach(i => clearInterval(i));
+            intervals = [];
+        }
+
+        function getDistance() {
+            const dxList = [0, 1, 1, 1, 0, -1, -1, -1];
+            const dyList = [-1, -1, 0, 1, 1, 1, 0, -1];
+
+            let checkX = robot.x;
+            let checkY = robot.y;
+            let distance = 0;
+
+            let moveDir = robot.dir;
+
+            while (true) {
+                checkX += dxList[moveDir];
+                checkY += dyList[moveDir];
+
+                if (checkX < 0 || checkX >= GRID || checkY < 0 || checkY >= GRID) {
+                    break; 
+                }
+                
+                if (map[checkY][checkX] === 1) {
+                    break;
+                }
+
+                distance++;
+                
+                if (distance > GRID) break;
+            }
+
+            return distance;
+        }
+        
+        let intervals = [];
+        let variables = {};
+        let under = 0;
+
+        function evalBlock(block) {
+            if (!block) return null;
+
+            if (!block.isEnabled()) return null;
+
+            // 1. Số (Math Number)
+            if (block.type === 'math_number') {
+                return parseFloat(block.getFieldValue('NUM'));
+            }
+            
+            // 2. Logic (True/False)
+            if (block.type === 'logic_boolean') {
+                return (block.getFieldValue('BOOL') === 'TRUE');
+            }
+
+            // 3. So sánh (Compare: =, <, >)
+            if (block.type === 'logic_compare') {
+                const valA = evalBlock(block.getInputTargetBlock('A'));
+                const valB = evalBlock(block.getInputTargetBlock('B'));
+                const op = block.getFieldValue('OP');
+                switch (op) {
+                    case 'EQ': return valA == valB;
+                    case 'NEQ': return valA != valB;
+                    case 'LT': return valA < valB;
+                    case 'LTE': return valA <= valB;
+                    case 'GT': return valA > valB;
+                    case 'GTE': return valA >= valB;
+                }
+            }
+
+            // 4. Phép toán Logic (AND, OR)
+            if (block.type === 'logic_operation') {
+                const valA = evalBlock(block.getInputTargetBlock('A'));
+                const valB = evalBlock(block.getInputTargetBlock('B'));
+                const op = block.getFieldValue('OP');
+                if (op === 'AND') return valA && valB;
+                if (op === 'OR') return valA || valB;
+            }
+            
+            // 5. Logic phủ định (NOT)
+            if (block.type === 'logic_negate') {
+                return !evalBlock(block.getInputTargetBlock('BOOL'));
+            }
+
+            // 6. LẤY GIÁ TRỊ BIẾN (GET)
+            if (block.type === 'variables_get') {
+                const varId = block.getFieldValue('VAR');
+                return variables[varId] !== undefined ? variables[varId] : 0;
+            }
+
+            // 7. XỬ LÝ VĂN BẢN (TEXT)
+            if (block.type === 'text') {
+                return block.getFieldValue('TEXT');
+            }
+
+            // 8. XỬ LÝ GHÉP VĂN BẢN (TEXT JOIN)
+            if (block.type === 'text_join') {
+                let text = "";
+                let itemCb = block.itemCount_; 
+                for (let i = 0; i < itemCb; i++) {
+                    let val = evalBlock(block.getInputTargetBlock('ADD' + i));
+                    if (val !== null) text += val;
+                }
+                return text;
+            }
+
+            if (block.type === 'join_2_text') {
+                let a = evalBlock(block.getInputTargetBlock('TEXT_1'));
+                let b = evalBlock(block.getInputTargetBlock('TEXT_2'));
+                return String(a !== null ? a : "") + String(b !== null ? b : "");
+            }
+
+            if (block.type === 'text_len') {
+                const val = evalBlock(block.getInputTargetBlock('TEXT')); 
+                return val ? String(val).length : 0;
+            }
+
+            // 9. TÍNH TOÁN
+            // 1. SỐ HỌC CƠ BẢN (+, -, *, /, ^)
+            if (block.type === 'math_arithmetic') {
+                const a = evalBlock(block.getInputTargetBlock('A')) || 0;
+                const b = evalBlock(block.getInputTargetBlock('B')) || 0;
+                const op = block.getFieldValue('OP');
+
+                if (op === 'ADD') return a + b;
+                if (op === 'MINUS') return a - b;
+                if (op === 'MULTIPLY') return a * b;
+                if (op === 'DIVIDE') return b !== 0 ? a / b : 0;
+                if (op === 'POWER') return Math.pow(a, b);
+                if (op === 'MODULO') return b !== 0 ? a % b : 0;
+            }
+
+            // 2. TÍNH TOÁN ĐƠN (Căn bậc 2, Giá trị tuyệt đối, Làm tròn...)
+            if (block.type === 'math_single') {
+                const val = evalBlock(block.getInputTargetBlock('NUM')) || 0;
+                const op = block.getFieldValue('OP');
+
+                if (op === 'ROOT') return Math.sqrt(val);
+                if (op === 'ABS') return Math.abs(val);
+                if (op === 'NEG') return -val;
+                if (op === 'LN') return Math.log(val);
+                if (op === 'LOG10') return Math.log10(val);
+                if (op === 'EXP') return Math.exp(val);
+                if (op === 'POW10') return Math.pow(10, val);
+            }
+
+            // 3. LÀM TRÒN SỐ
+            if (block.type === 'math_round') {
+                const val = evalBlock(block.getInputTargetBlock('NUM')) || 0;
+                const op = block.getFieldValue('OP');
+                
+                if (op === 'ROUND') return Math.round(val);
+                if (op === 'ROUNDUP') return Math.ceil(val);
+                if (op === 'ROUNDDOWN') return Math.floor(val); 
+            }
+
+            // 4. RANDOM (Ngẫu nhiên)
+            if (block.type === 'math_random_int') {
+                const from = parseFloat(block.getInputTargetBlock('FROM')) || 0;
+                const to = parseFloat(block.getInputTargetBlock('TO')) || 0;
+                
+                const l = Math.min(from, to);
+                const r = Math.max(from, to);
+                let val = 0;
+                for (let i = 0; i <= 62; ++i) {
+                    const mask = Math.floor(Math.random() * 10) % 2;
+                    val += (mask << i);
+                }
+                val = Math.abs(val);
+                return val % (r - l + 1) + l;
+            }
+
+            // 5. CHUYỂN TEXT THÀNH SỐ (Block tự tạo)
+            if (block.type === 'text_to_num') {
+                const val = evalBlock(block.getInputTargetBlock('VAL'));
+                return parseFloat(val) || 0;
+            }
+
+            // 6. MAP RANGE (Block tự tạo: đổi hệ số 0-1023 sang 0-100)
+            if (block.type === 'math_map_range') {
+                const val = evalBlock(block.getInputTargetBlock('VAL')) || 0;
+                let res = (val * 100) / 1023;
+                
+                if (res < 0) res = 0;
+                if (res > 100) res = 100;
+                
+                return Math.round(res);
+            }
+
+            // 10. GỌI HÀM CÓ TRẢ VỀ (Return Function)
+            if (block.type === 'procedures_callreturn') {
+                const funcName = block.getFieldValue('NAME');
+                
+                const defBlock = workspace.getTopBlocks(false).find(b => 
+                    b.type === 'procedures_defreturn' && 
+                    b.getFieldValue('NAME') === funcName
+                );
+
+                if (defBlock) {
+                    const argNames = defBlock.arguments_ || [];
+                    for (let i = 0; i < argNames.length; i++) {
+                        const paramValue = evalBlock(block.getInputTargetBlock('ARG' + i));
+                        const varModel = workspace.getVariable(argNames[i]);
+                        if (varModel) variables[varModel.getId()] = paramValue;
+                    }
+
+                    const returnBlock = defBlock.getInputTargetBlock('RETURN');
+                    return evalBlock(returnBlock);
+                }
+                return 0;
+            }
+
+            // 11. IF RETURN (Trả về sớm)
+            if (block.type === 'procedures_ifreturn') {
+                const cond = evalBlock(block.getInputTargetBlock('CONDITION'));
+                if (cond) {
+                    return evalBlock(block.getInputTargetBlock('VALUE'));
+                }
+                return null;
+            }
+
+            // 12. DANH SÁCH - TẠO MỚI (Create List)
+            if (block.type === 'lists_create_with') {
+                const list = [];
+                const itemCount = block.itemCount_; 
+                for (let i = 0; i < itemCount; i++) {
+                    const val = evalBlock(block.getInputTargetBlock('ADD' + i));
+                    list.push(val !== null ? val : 0);
+                }
+                return list;
+            }
+
+            if (block.type === 'lists_create_empty') {
+                return [];
+            }
+
+            // 13. DANH SÁCH - ĐỘ DÀI (Length)
+            if (block.type === 'lists_length') {
+                const list = evalBlock(block.getInputTargetBlock('VALUE'));
+                console.log(list.length);
+                if (Array.isArray(list)) return list.length;
+                return 0;
+            }
+
+            // 14. DANH SÁCH - KIỂM TRA RỖNG (Is Empty)
+            if (block.type === 'lists_isEmpty') {
+                const list = evalBlock(block.getInputTargetBlock('VALUE'));
+                return !Array.isArray(list) || list.length === 0;
+            }
+
+            // 15. DANH SÁCH - LẤY PHẦN TỬ (Get Index)
+            if (block.type === 'lists_getIndex') {
+                const list = evalBlock(block.getInputTargetBlock('VALUE'));
+                if (!Array.isArray(list)) return 0;
+
+                const mode = block.getFieldValue('MODE'); 
+                const where = block.getFieldValue('WHERE');  
+                
+                let index = 0;
+                if (where === 'FROM_START') {
+                    const at = evalBlock(block.getInputTargetBlock('AT'));
+                    index = at - 1; 
+                } else if (where === 'FROM_END') {
+                    const at = evalBlock(block.getInputTargetBlock('AT'));
+                    index = list.length - at;
+                } else if (where === 'FIRST') {
+                    index = 0;
+                } else if (where === 'LAST') {
+                    index = list.length - 1;
+                } else if (where === 'RANDOM') {
+                    index = Math.floor(Math.random() * list.length);
+                }
+
+                // Logic lấy/xóa
+                if (mode === 'GET') {
+                    return list[index] !== undefined ? list[index] : 0;
+                } 
+                else if (mode === 'REMOVE') {
+                    if (index >= 0 && index < list.length) list.splice(index, 1);
+                    return 0;
+                }
+                else if (mode === 'GET_REMOVE') {
+                    if (index >= 0 && index < list.length) return list.splice(index, 1)[0];
+                    return 0;
+                }
+            }
+            
+            if (block.type === 'distance_sensor') {
+                return getDistance();
+            }
+
+            if (block.type === 'under_sensor') {
+                return under;
+            }
+            return 0; 
+        }
+
+
+        async function runSeq(block) {
+            let c = block;
+            while (c) {
+                if (!isRunning) return; 
+                
+                if (!c.isEnabled()) {
+                    c = c.getNextBlock();
+                    continue;
+                }
+
+                if (c.type === 'base_delay') {
+                    let delayBlock = c.getInputTargetBlock('DELAY');
+                    let val = 0.1;
+                    if (delayBlock && delayBlock.type === 'math_number') {
+                        val = parseFloat(delayBlock.getFieldValue('NUM'));
+                    }
+                    await new Promise(r => setTimeout(r, val * 1000));
+                    robot.mise += val * 1000;
+                }
+
+                else if (c.type === 'yolo_loop_forever') {
+                    while (isRunning) {
+                        await runSeq(c.getInputTargetBlock('DO'));
+                        await new Promise(r => setTimeout(r, 20)); 
+                        robot.mise += 20;
+                    }
+                }
+
+                else if (c.type === 'base_wait_until') {
+                    while (isRunning) {
+                        let cond = false;
+                        const condBlock = c.getInputTargetBlock('COND');
+                        
+                        if (condBlock) {
+                            if (condBlock.type === 'logic_boolean') {
+                                cond = (condBlock.getFieldValue('BOOL') === 'TRUE');
+                            }
+                        }
+
+                        if (cond) break; 
+                        await new Promise(r => setTimeout(r, 100)); 
+                        robot.mise += 100;
+                    }
+                }
+
+                else if (c.type === 'controls_repeat_ext') {
+                    let timesBlock = c.getInputTargetBlock('TIMES');
+                    let n = timesBlock ? evalBlock(timesBlock) : 0;
+                    
+                    for (let i = 0; i < n; i++) {
+                        if (!isRunning) return;
+                        const status = await runSeq(c.getInputTargetBlock('DO'));
+                        if (status === 'BREAK') break;
+                        if (status === 'CONTINUE') continue;
+                    }
+                }
+
+                // 2. WHILE / UNTIL (Lặp theo điều kiện)
+                else if (c.type === 'controls_whileUntil') {
+                    const mode = c.getFieldValue('MODE');
+                    
+                    while (isRunning) {
+                        let condition = evalBlock(c.getInputTargetBlock('BOOL'));
+                        
+                        if (mode === 'UNTIL') condition = !condition;
+                        
+                        if (!condition) break;
+
+                        const status = await runSeq(c.getInputTargetBlock('DO'));
+                        if (status === 'BREAK') break;
+                        if (status === 'CONTINUE') continue;
+                        
+                        await new Promise(r => setTimeout(r, 10)); 
+                        robot.mise += 10;
+                    }
+                }
+
+                // 3. FOR LOOP (Đếm từ A đến B)
+                else if (c.type === 'controls_for') {
+                    const from = evalBlock(c.getInputTargetBlock('FROM'));
+                    const to = evalBlock(c.getInputTargetBlock('TO'));
+                    const by = evalBlock(c.getInputTargetBlock('BY'));
+
+                    const varId = c.getFieldValue('VAR');
+                    
+                    for (let i = from; (by > 0 ? i <= to : i >= to); i += by) {
+                        if (!isRunning) return;
+                        
+                        variables[varId] = i;
+
+                        const status = await runSeq(c.getInputTargetBlock('DO'));
+                        if (status === 'BREAK') break;
+                        if (status === 'CONTINUE') continue;
+                    }
+                    delete variables[varId];
+                }
+
+                // 4. LỆNH NGẮT (BREAK / CONTINUE)
+                else if (c.type === 'controls_flow_statements') {
+                    const flow = c.getFieldValue('FLOW'); 
+                    return flow; 
+                }
+
+                else if (c.type === 'procedures_callnoreturn') {
+                    const funcName = c.getFieldValue('NAME');
+                    
+                    const defBlock = workspace.getTopBlocks(false).find(b => 
+                        b.type === 'procedures_defnoreturn' && 
+                        b.getFieldValue('NAME') === funcName
+                    );
+
+                    if (defBlock) {
+                        const argNames = defBlock.arguments_ || []; 
+                        
+                        for (let i = 0; i < argNames.length; i++) {
+                            const paramValue = evalBlock(c.getInputTargetBlock('ARG' + i));
+                            
+                            const varModel = workspace.getVariable(argNames[i]);
+                            if (varModel) {
+                                variables[varModel.getId()] = paramValue;
+                            }
+                        }
+
+                        const funcBody = defBlock.getInputTargetBlock('STACK');
+                        if (funcBody) await runSeq(funcBody);
+                    }
+                }
+
+                else if (c.type === 'controls_if') {
+                    let n = 0;
+                    let hasExecuted = false;
+
+                    while (c.getInput('IF' + n)) {
+                        const condition = evalBlock(c.getInputTargetBlock('IF' + n));
+                        
+                        if (condition) {
+                            const status = await runSeq(c.getInputTargetBlock('DO' + n));
+                            
+                            if (status === 'BREAK' || status === 'CONTINUE') return status;
+                            
+                            hasExecuted = true;
+                            break; 
+                        }
+                        n++;
+                    }
+
+                    // 2. Xử lý nhánh NẾU KHÔNG (ELSE)
+                    if (!hasExecuted && c.getInput('ELSE')) {
+                        const status = await runSeq(c.getInputTargetBlock('ELSE'));
+                        if (status === 'BREAK' || status === 'CONTINUE') return status;
+                    }
+                }
+
+                else if (c.type === 'variables_set') {
+                    const varId = c.getFieldValue('VAR');
+                    const val = evalBlock(c.getInputTargetBlock('VALUE'));
+                    variables[varId] = val; 
+                }
+
+                else if (c.type === 'math_change') {
+                    const varId = c.getFieldValue('VAR');
+                    const delta = evalBlock(c.getInputTargetBlock('DELTA')); 
+                    
+                    const current = parseFloat(variables[varId] || 0);
+                    variables[varId] = current + delta;
+                }
+
+                // XỬ LÝ GÁN PHẦN TỬ DANH SÁCH (Set Index)
+                else if (c.type === 'lists_setIndex') {
+                    const list = evalBlock(c.getInputTargetBlock('LIST'));
+                    
+                    if (Array.isArray(list)) {
+                        const mode = c.getFieldValue('MODE'); 
+                        const where = c.getFieldValue('WHERE');
+                        const value = evalBlock(c.getInputTargetBlock('TO')); 
+
+                        let index = 0;
+                        if (where === 'FROM_START') {
+                            const at = evalBlock(c.getInputTargetBlock('AT'));
+                            index = at - 1;
+                        } else if (where === 'FROM_END') {
+                            const at = evalBlock(c.getInputTargetBlock('AT'));
+                            index = list.length - at;
+                        } else if (where === 'FIRST') {
+                            index = 0;
+                        } else if (where === 'LAST') {
+                            index = list.length - 1;
+                        } else if (where === 'RANDOM') {
+                            index = Math.floor(Math.random() * list.length);
+                        }
+
+                        if (mode === 'SET') {
+                            if (index >= 0 && index < list.length) list[index] = value;
+                        } else if (mode === 'INSERT') {
+                            if (index >= 0 && index <= list.length) list.splice(index, 0, value);
+                        }
+                    }
+                }
+
+                else if (c.type === 'lists_push') {
+                    const varId = c.getFieldValue('VAR');
+                    const val = evalBlock(c.getInputTargetBlock('ITEM'));
+
+                    if (!Array.isArray(variables[varId])) {
+                        variables[varId] = [];
+                    }
+
+                    variables[varId].push(val != null ? val : 0);
+                    // return;
+                }
+                
+                else { 
+                    await exec(c); 
+                }
+                if (c.type !== 'yolo_loop_forever') {
+                    c = c.getNextBlock();
+                } else {
+                    break; 
+                }
+            }
+        }
+
+        function moveStepLogic(dirMode) {
+            const dxList = [0, 1, 1, 1, 0, -1, -1, -1];
+            const dyList = [-1, -1, 0, 1, 1, 1, 0, -1];
+
+            let moveDir = robot.dir;
+            if (dirMode === 'BW') {
+                moveDir = (robot.dir + 4) % 8; 
+            }
+
+            let nextX = robot.x + dxList[moveDir];
+            let nextY = robot.y + dyList[moveDir];
+
+            if (nextX < 0 || nextX >= GRID || nextY < 0 || nextY >= GRID) {
+                return false; 
+            }
+            
+            if (map[nextY][nextX] === 1) {
+                return false;
+            }
+
+            robot.x = nextX;
+            robot.y = nextY;
+
+            let tile = map[robot.y][robot.x];
+            under = tile;
+            
+            if (tile === 2) { 
+                robot.inv++; 
+                map[robot.y][robot.x] = 0; 
+            }
+            
+            if (tile === 3) { 
+                if (robot.inv > 0) {
+                    robot.beinv += robot.inv; 
+                    const Toast = Swal.mixin({
+                        toast: true, position: 'top-end', showConfirmButton: false, timer: 1000,
+                        background: '#1e293b', color: '#fff'
+                    });
+                    let mi = numtostring(robot.min, 1);
+                    let sec = numtostring(robot.se, 1);
+                    let minise = numtostring(robot.mise, 2);
+
+                    timebox = `${mi}:${sec}:${minise}`;
+
+                    Toast.fire({ icon: 'info', title: `Bé yêu đã nộp ${robot.inv} kim cương😋!` });
+                }
+                robot.inv = 0; 
+            }
+
+            if (tile === 4) {
+                const remainingDiamonds = map.flat().filter(i => i === 2).length;
+                
+                if (remainingDiamonds > 0) {
+                     Swal.fire({
+                        title: 'Chưa xong!',
+                        text: `Vẫn còn ${remainingDiamonds} viên kim cương trên bản đồ kìa bé yêu😯!`,
+                        icon: 'info',
+                        background: '#1e293b', color: '#fff',
+                        timer: 2000, showConfirmButton: false
+                    });
+                } 
+                else if (robot.inv > 0) {
+                    Swal.fire({
+                        title: 'Chưa xong!',
+                        text: 'Baby đang cầm kim cương kìa! Bỏ vào hộp 📥 trước khi về đích nhen.',
+                        icon: 'warning',
+                        background: '#1e293b', color: '#fff',
+                        timer: 3000, showConfirmButton: false
+                    });
+                }
+                else { 
+                    confetti(); 
+                      
+                    let mi = numtostring(robot.min, 1);
+                    let sec = numtostring(robot.se, 1);
+                    let minise = numtostring(robot.mise, 2); 
+
+                    Swal.fire({
+                        title: `BABY ĐÃ HOÀN THÀNH MÊ CUNG NÀY 🏆`,
+                        html: `
+                            <div class="mt-4 text-left space-y-3">
+                                <div class="flex justify-between items-center p-2 rounded bg-slate-800/50">
+                                    <span class="text-slate-400 text-xs uppercase font-bold">Trạng thái:</span>
+                                    <span class="text-emerald-400 font-bold">HOÀN THÀNH</span>
+                                </div>
+                                <div class="flex justify-between items-center p-2 rounded bg-slate-800/50">
+                                    <span class="text-slate-400 text-xs uppercase font-bold">Thu thập 💎:</span>
+                                    <span class="stat-badge text-cyan-400">${timebox}ms</span>
+                                </div>
+                                <div class="flex justify-between items-center p-2 rounded bg-slate-800/50">
+                                    <span class="text-slate-400 text-xs uppercase font-bold">Tổng thời gian:</span>
+                                    <span class="stat-badge text-orange-400">${mi}:${sec}:${minise}ms</span>
+                                </div>
+                            </div>
+                            <p class="mt-4 text-slate-500 text-[10px]">Hệ thống ghi nhận kết quả thành công!</p>
+                        `,
+                        icon: 'success',
+                        iconColor: '#06b6d4',
+                        background: '#0f172a', 
+                        color: '#f8fafc',
+                        showConfirmButton: true,
+                        confirmButtonText: 'TIẾP TỤC',
+                        confirmButtonColor: '#2563eb', 
+                        customClass: {
+                            popup: 'custom-swal-popup',
+                            title: 'custom-swal-title',
+                            htmlContainer: 'custom-swal-html'
+                        },
+                        showClass: {
+                            popup: 'animate__animated animate__zoomIn' 
+                        }
+                    });
+                    isRunning = false;
+                }
+            }
+
+            return true;
+        }
+
+        async function exec(b) {
+            if (!isRunning) return;
+
+            if(b.type === 'robot_turn_simple') {
+                const d = b.getFieldValue('DIR');
+                const steps = parseInt(b.getFieldValue('DEG'));
+                
+                if(d === 'R') robot.dir = (robot.dir + steps) % 8;
+                if(d === 'L') robot.dir = (robot.dir - steps + 8) % 8;
+                render();
+                await new Promise(r => setTimeout(r, 100));
+                robot.mise += 100;
+            }
+
+            // --- XỬ LÝ DI CHUYỂN ---
+            if (b.type === 'robot_move') {
+                const d = b.getFieldValue('DIR');
+                
+                moveStepLogic(d); 
+                
+                render();
+                await new Promise(r => setTimeout(r, 100));
+                robot.mise += 100;
+            }
+
+            if (b.type === 'text_print_serial') {
+                const val = evalBlock(b.getInputTargetBlock('TEXT'));
+                
+                let textToShow = "";
+                if (typeof val === 'object') textToShow = JSON.stringify(val);
+                else textToShow = String(val !== null && val !== undefined ? val : "");
+
+                const log = document.getElementById('terminalLog');
+                const time = new Date().toLocaleTimeString('vi-VN', { hour12: false });
+
+                log.innerHTML += `
+                    <div class="mb-1 border-b border-slate-800/50 pb-1">
+                        <span class="text-[9px] text-slate-500 font-mono">[${time}]</span> 
+                        <span class="text-emerald-400 font-bold">${textToShow}</span>
+                    </div>`;
+                log.scrollTop = log.scrollHeight;
+            }
+            render(); 
+            
+            if (isRunning && b.type !== 'robot_move' && b.type !== 'robot_turn_simple') {
+                await new Promise(r => setTimeout(r, 50)); 
+                robot.mise += 50;
+            }
+        }
+
+        function resetSim() { 
+            if (initialMap.length > 0) {
+                map = JSON.parse(JSON.stringify(initialMap));
+            }
+
+            robot.x = robot.startX; 
+            robot.y = robot.startY; 
+
+            robot.dir = robot.startDir * 2; 
+            robot.inv = 0; 
+            robot.beinv = 0;
+
+            robot.min = 0;
+            robot.se = 0;
+            robot.mise = 0;
+            
+            document.getElementById('terminalLog').innerHTML = ""; 
+            render(); 
+        }
+
+        function resetSim2() {
+            stopProject();
+            resetSim();
+        }
+
+        function saveCode() {
+            try {
+                const state = Blockly.serialization.workspaces.save(workspace);
+                
+                const data = {
+                    type: "pvt_robotic_code", 
+                    timestamp: new Date().toISOString(),
+                    code: state
+                };
+
+                const jsonString = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonString], {type: "application/json"});
+                const a = document.createElement("a");
+                
+                a.href = URL.createObjectURL(blob);
+                a.download = "robot_code.json";
+                document.body.appendChild(a); 
+                a.click(); 
+                document.body.removeChild(a);
+
+                const Toast = Swal.mixin({
+                    toast: true, position: 'top-end', showConfirmButton: false, timer: 1500,
+                    didOpen: (toast) => { toast.addEventListener('mouseenter', Swal.stopTimer); toast.addEventListener('mouseleave', Swal.resumeTimer); }
+                });
+                Toast.fire({ icon: 'success', title: 'Đã lưu Code JSON cho baby rồi đó!' });
+
+            } catch (e) { 
+                console.error(e);
+                Swal.fire('Lỗi!', 'Đã có lỗi gì đó rồi baby ơiiiii.', 'error'); 
+            }
+        }
+
+        function loadCode() {
+            const input = document.createElement('input'); 
+            input.type = 'file'; 
+            input.accept = ".json";
+
+            input.onchange = e => {
+                const file = e.target.files[0]; 
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    isSystemLocked = true; 
+                    try {
+                        const content = JSON.parse(ev.target.result);
+
+                        if (content.code) {
+                            workspace.clear(); 
+                            Blockly.serialization.workspaces.load(content.code, workspace);
+                            
+                            ensureStartBlock(); 
+                            saveToLocalStorage(); 
+
+                            Swal.fire({ 
+                                icon: 'success', 
+                                title: 'Thành công', 
+                                text: 'Đã nạp code mới rồi nha bé yêu💘!', 
+                                timer: 1500, 
+                                showConfirmButton: false, 
+                                background: '#1e293b', 
+                                color: '#fff' 
+                            });
+                        } else {
+                            throw new Error("File không chứa dữ liệu code hợp lệ baby ơi");
+                        }
+
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: 'File JSON không đúng định dạng code rồi baby.', background: '#1e293b', color: '#fff' });
+                    } finally {
+                        setTimeout(() => isSystemLocked = false, 500);
+                    }
+                };
+                reader.readAsText(file); 
+                input.value = '';
+            };
+            input.click();
+        }
+
+        // --- QUẢN LÝ GIAO DIỆN SÁNG/TỐI ---
+        function toggleTheme() {
+            const body = document.body;
+            body.classList.toggle('light-mode');
+            
+            const isLight = body.classList.contains('light-mode');
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+
+            localStorage.setItem('pvt_theme', isLight ? 'light' : 'dark');
+
+            if (isLight) {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>';
+                icon.classList.remove('text-yellow-400');
+                icon.classList.add('text-slate-600');
+                text.innerText = "Chế độ Tối";
+                
+                // Cập nhật Blockly Theme: Dịu mắt hơn
+                const LightTheme = Blockly.Theme.defineTheme('ohstem_light', {
+                    base: Blockly.Themes.Classic,
+                    componentStyles: {
+                        workspaceBackgroundColour: '#e2e8f0', 
+                        toolboxBackgroundColour: '#f8fafc',    
+                        toolboxForegroundColour: '#334155',
+                        flyoutBackgroundColour: '#f1f5f9',
+                        flyoutForegroundColour: '#000',
+                        flyoutOpacity: 0.95,
+                        scrollbarColour: '#cbd5e1',
+                        insertionMarkerColour: '#3b82f6',
+                        insertionMarkerOpacity: 0.3,
+                    },
+                    fontStyle: { family: '"Inter", sans-serif', weight: '600', size: 12 }
+                });
+                workspace.setTheme(LightTheme);
+
+            } else {
+                // Icon Mặt trời
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>';
+                icon.classList.add('text-yellow-400');
+                icon.classList.remove('text-slate-600');
+                text.innerText = "Chế độ Sáng";
+                
+                workspace.setTheme(OhStemTheme);
+            }
+            
+            render();
+        }
+
+        // Kiểm tra khi khởi động
+        function loadTheme() {
+            const theme = localStorage.getItem('pvt_theme');
+            if (theme === 'light') {
+                toggleTheme(); 
+            }
+        }
+        
+        function importMap() {
+            const input = document.createElement('input'); input.type = 'file';
+            input.onchange = e => {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    const d = JSON.parse(ev.target.result);
+                    
+                    initialMap = JSON.parse(JSON.stringify(d.map));
+                    map = JSON.parse(JSON.stringify(initialMap));
+                    
+                    robot.startX = d.rx; robot.startY = d.ry; robot.startDir = d.rd || 0; 
+                    resetSim();
+                    saveToLocalStorage();
+                };
+                reader.readAsText(e.target.files[0]);
+            };
+            input.click();
+        }
+        
+        function clearAllData() { localStorage.clear(); location.reload(); }
+
+        function toTools() {
+            const Toast = Swal.mixin({
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 1000,
+                background: '#1e293b', color: '#fff'
+            });
+            Toast.fire({ icon: 'info', title: 'Đang mở Mage Tools Hub... 🚀' });
+
+            setTimeout(() => {
+                window.location.href = 'Tools/tools.html';
+            }, 500);
+        }
+
+        function contactOfMage() {
+            const Toast = Swal.mixin({
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 1000,
+                background: '#1e293b', color: '#fff'
+            });
+            Toast.fire({ icon: 'info', title: 'Đang mở facebook tác giả... 📶' });
+
+            setTimeout(() => {
+                window.open('https://www.facebook.com/prodMage19/', '_blank');
+            }, 500);
+        }
+        
+        loadSavedSkin();
+        loadFromLocalStorage();
+        loadTheme();
+    </script>
+    
+    <!-- <button onclick="contactOfMage()" class="fixed bottom-6 right-6 z-50 group flex items-center justify-center w-12 h-12 bg-slate-800/80 backdrop-blur-md border border-slate-700/50 hover:bg-blue-600 hover:border-blue-400 text-slate-400 hover:text-white rounded-full shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:shadow-[0_0_20px_rgba(59,130,246,0.4)] transition-all duration-300 hover:-translate-y-1 active:scale-95" title="Liên hệ Tác giả">
+        <svg class="w-5 h-5 transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"></path>
+        </svg>
+        <span class="absolute top-0 right-0 flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border-2 border-[#050505]"></span>
+        </span>
+    </button> -->
+</body>
+</html>

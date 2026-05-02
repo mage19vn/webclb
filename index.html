@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang chủ | Robocon PVT</title>
+    <style>
+        :root {
+            --bg-base: #0a0a0a; 
+            --bg-panel: #141414; 
+            --border: #2a2a2a;
+            --text-main: #eaeaea; 
+            --text-muted: #888; 
+            --text-accent: #ff3333; 
+            --text-accent-hover: #ff4d4d;
+            --font-ui: 'Segoe UI', system-ui, sans-serif;
+            --font-code: 'Consolas', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-base); color: var(--text-main); font-family: var(--font-ui); line-height: 1.6; overflow-x: hidden; }
+
+        /* --- NAVBAR --- */
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 50px; background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); position: fixed; width: 100%; top: 0; z-index: 100; }
+        .logo { font-size: 22px; font-weight: 900; letter-spacing: 2px; color: #fff; text-transform: uppercase; }
+        .logo span { color: var(--text-accent); }
+        .nav-links { display: flex; gap: 25px; align-items: center; }
+        .nav-links a { text-decoration: none; color: var(--text-main); font-size: 13px; font-weight: bold; transition: 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+        .nav-links a:hover { color: var(--text-accent); }
+        .btn-launch { background: var(--text-accent); color: #fff !important; padding: 6px 16px; border-radius: 4px; }
+        .btn-launch:hover { background: var(--text-accent-hover); box-shadow: 0 0 15px rgba(255, 51, 51, 0.4); }
+        .btn-outline { border: 1px solid var(--border); padding: 5px 12px; border-radius: 4px; color: var(--text-accent) !important; }
+        .btn-outline:hover { border-color: var(--text-accent); background: rgba(255,51,51,0.1); }
+
+        /* --- HERO SECTION --- */
+        .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 100px 20px; background: radial-gradient(circle at center, #1a0b0d 0%, var(--bg-base) 60%); position: relative; }
+        .hero::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 40px 40px; opacity: 0.2; pointer-events: none; }
+        
+        .hero-badge { background: #1a1a1a; border: 1px solid #333; padding: 6px 16px; border-radius: 20px; font-family: var(--font-code); font-size: 12px; color: var(--text-accent); margin-bottom: 20px; z-index: 1; }
+        .hero h1 { font-size: 60px; text-transform: uppercase; margin-bottom: 20px; color: #fff; letter-spacing: 3px; z-index: 1; max-width: 900px; line-height: 1.1; }
+        .hero p { font-size: 18px; color: var(--text-muted); max-width: 600px; margin-bottom: 40px; z-index: 1; }
+        .hero-btns { display: flex; gap: 20px; z-index: 1; }
+        .btn-primary { background: var(--text-accent); color: #fff; text-decoration: none; padding: 12px 30px; font-size: 16px; font-weight: bold; border-radius: 4px; transition: 0.3s; text-transform: uppercase; border: none; cursor: pointer; }
+        .btn-primary:hover { background: var(--text-accent-hover); box-shadow: 0 0 20px rgba(255, 51, 51, 0.5); }
+        .btn-secondary { background: transparent; color: #fff; text-decoration: none; padding: 12px 30px; font-size: 16px; font-weight: bold; border: 1px solid var(--border); border-radius: 4px; transition: 0.3s; text-transform: uppercase; }
+        .btn-secondary:hover { border-color: #fff; background: rgba(255,255,255,0.05); }
+
+        /* --- CÁC HOẠT ĐỘNG / THÀNH TÍCH --- */
+        .section { padding: 100px 20px; max-width: 1200px; margin: 0 auto; border-bottom: 1px dashed var(--border); }
+        .section:last-of-type { border-bottom: none; }
+        .section-header { text-align: center; margin-bottom: 60px; }
+        .section-header h2 { font-size: 36px; color: #fff; text-transform: uppercase; letter-spacing: 2px; }
+        .section-header p { color: var(--text-muted); margin-top: 10px; font-family: var(--font-code); }
+
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 30px; margin-bottom: 80px; }
+        .card { background: var(--bg-panel); border: 1px solid var(--border); padding: 40px 30px; border-radius: 8px; transition: 0.3s; position: relative; overflow: hidden; }
+        .card:hover { border-color: var(--text-accent); transform: translateY(-5px); }
+        .card-icon { font-size: 40px; margin-bottom: 20px; }
+        .card h3 { font-size: 22px; margin-bottom: 15px; color: #fff; }
+        .card p { color: var(--text-muted); font-size: 15px; }
+
+        /* --- DỰ ÁN NỔI BẬT (SHOWCASES) --- */
+        .showcase-wrapper { display: flex; flex-direction: column; gap: 40px; }
+        
+        .project-showcase { background: linear-gradient(135deg, #111 0%, #1a0b0d 100%); border: 1px solid var(--text-accent); border-radius: 12px; padding: 50px; display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
+        .project-showcase.reverse { background: linear-gradient(135deg, #111 0%, #0d1a26 100%); border-color: #58a6ff; flex-direction: row-reverse; }
+
+        .project-info { flex: 1; min-width: 300px; }
+        .project-info h3 { font-size: 32px; color: #fff; margin-bottom: 15px; }
+        .project-info p { color: var(--text-muted); margin-bottom: 25px; font-size: 16px; }
+        
+        .tag-list { display: flex; gap: 10px; margin-bottom: 30px; flex-wrap: wrap; }
+        .tag-list span { background: #222; border: 1px solid #444; font-family: var(--font-code); font-size: 12px; padding: 4px 10px; border-radius: 4px; color: #ccc; }
+        .reverse .tag-list span { border-color: #1f3a5f; background: #0a1526; color: #58a6ff; }
+        .reverse .btn-primary { background: #58a6ff; color: #000; }
+        .reverse .btn-primary:hover { background: #79b8ff; box-shadow: 0 0 20px rgba(88, 166, 255, 0.4); }
+
+        .project-visual { 
+            flex: 1; min-width: 300px; background: #000; border: 1px solid #333; height: 260px; border-radius: 8px; 
+            padding: 20px; display: flex; align-items: flex-start; justify-content: flex-start; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8); position: relative; overflow: auto; 
+        }
+        
+        .project-visual pre { 
+            font-family: var(--font-code); font-size: 14px; line-height: 1.6; margin: 0; text-align: left; 
+        }
+        
+        .text-python { color: #e5c07b; } /* Màu vàng Python */
+        .text-cpp { color: #58a6ff; } /* Màu xanh C++ */
+
+        /* --- THÀNH VIÊN CLB --- */
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; }
+        .team-card { background: transparent; border: 1px solid var(--border); border-radius: 8px; padding: 40px 20px; text-align: center; transition: 0.3s; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .team-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--border); transition: 0.3s; }
+        .team-card:hover::before { background: var(--text-accent); }
+        .team-card:hover { background: var(--bg-panel); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .avatar { width: 90px; height: 90px; border-radius: 50%; background: #1a1a1a; margin: 0 auto 20px; border: 2px solid #333; display: flex; align-items: center; justify-content: center; font-size: 40px; transition: 0.3s; }
+        .team-card:hover .avatar { border-color: var(--text-accent); }
+        .team-card h3 { color: #fff; font-size: 20px; margin-bottom: 5px; }
+        .member-role { color: var(--text-accent); font-size: 12px; font-weight: bold; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 1px; }
+        .team-card p { color: var(--text-muted); font-size: 14px; line-height: 1.5; flex-grow: 1; }
+        
+        /* Liên hệ Thành viên */
+        .member-contact { margin-top: 20px; display: flex; gap: 10px; justify-content: center; }
+        .member-contact a { background: #222; border: 1px solid #444; color: #ccc; text-decoration: none; padding: 5px 12px; font-size: 12px; border-radius: 4px; transition: 0.2s; font-family: var(--font-code); }
+        .member-contact a:hover { border-color: var(--text-accent); color: var(--text-accent); background: rgba(255,51,51,0.1); }
+
+        /* --- LEADER BOARD --- */
+        .stats-container { display: flex; justify-content: center; gap: 60px; margin-top: 60px; flex-wrap: wrap; }
+        .stat-box { text-align: center; max-width: 280px; }
+        .stat-box h4 { font-size: 48px; color: #fff; font-weight: 900; margin-bottom: 5px; }
+        .stat-box p { color: var(--text-accent); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; font-size: 14px; }
+        .stat-box span { display: block; color: var(--text-muted); font-size: 13px; margin-top: 5px; }
+
+        /* --- FOOTER --- */
+        footer { background: #050505; border-top: 1px solid var(--border); padding: 40px 20px; text-align: center; }
+        footer p { color: var(--text-muted); font-size: 14px; }
+        footer span { color: #fff; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- THANH ĐIỀU HƯỚNG -->
+    <nav>
+        <div class="logo">ROBOCON <span>PVT</span></div>
+        <div class="nav-links">
+            <a href="#about">Về Chúng Tôi</a>
+            <a href="#activities">Hoạt Động</a>
+            <a href="#members">Thành Viên</a>
+            <a href="robocon.html" class="btn-outline">Web Mô Phỏng</a>
+            <a href="visualizer.html" class="btn-launch">▶ Code Visualizer</a>
+        </div>
+    </nav>
+
+    <!-- PHẦN MỞ ĐẦU (HERO) -->
+    <header class="hero" id="about">
+        <div class="hero-badge">THPT Phan Văn Trị</div>
+        <h1>Đam Mê Chế Tạo & Lập Trình Thuật Toán</h1>
+        <p>Nơi hội tụ các cá nhân đam mê kỹ thuật, mạch điện, cơ khí và khoa học máy tính. Cùng nhau kiến tạo, cùng nhau chinh phục các giải đấu chuyên nghiệp.</p>
+        <div class="hero-btns">
+            <a href="#activities" class="btn-primary">Khám Phá Hoạt Động</a>
+            <a href="#members" class="btn-secondary">Gặp Gỡ Đội Ngũ</a>
+        </div>
+    </header>
+
+    <!-- HOẠT ĐỘNG CHÍNH -->
+    <section id="activities" class="section">
+        <div class="section-header">
+            <h2>Hoạt Động Cốt Lõi</h2>
+            <p>// Build. Code. Compete.</p>
+        </div>
+
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-icon">⚙️</div>
+                <h3>Chế Tạo Robotics</h3>
+                <p>Nghiên cứu thiết kế cơ khí, mạch điện tử và lập trình nhúng. Đại diện trường tham gia thực chiến. Tự hào giành danh hiệu <b>Á quân Quốc gia Robocon ORC 2025</b>.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🏆</div>
+                <h3>Code Challenge PVT</h3>
+                <p>Đơn vị chủ quản tổ chức giải đấu <b>Code Challenge PVT Open</b> trên nền tảng giả lập. Tạo ra sân chơi cạnh tranh, giúp các tài năng trẻ phát triển tư duy logic.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">💻</div>
+                <h3>Bồi Dưỡng Tin Học</h3>
+                <p>Xây dựng môi trường rèn luyện Competitive Programming (C++, Python). Đồng hành cùng Đội tuyển Tin học của trường chinh phục các kỳ thi HSG cấp Tỉnh.</p>
+            </div>
+        </div>
+
+       <!-- KHU VỰC GIỚI THIỆU WEB/APP NỔI BẬT -->
+        <div class="showcase-wrapper">
+            
+            <!-- SHOWCASE 1: WEB MÔ PHỎNG (Code Python) -->
+            <div class="project-showcase">
+                <div class="project-info">
+                    <h3>Robocon Simulator Platform</h3>
+                    <p>Nền tảng thi đấu giả lập và huấn luyện do CLB phát triển. Nơi diễn ra giải đấu Code Challenge PVT Open, cho phép thành viên lập trình điều khiển robot trong môi trường đấu trường ảo, mô phỏng sát với vật lý thực tế.</p>
+                    <div class="tag-list">
+                        <span>Virtual Arena</span>
+                        <span>Physics Engine</span>
+                        <span>Competition</span>
+                    </div>
+                    <a href="robocon.html" class="btn-primary">Vào Đấu Trường Mô Phỏng</a>
+                </div>
+                <!-- Sửa lại phần này -->
+                <div class="project-visual">
+                    <pre class="text-python">def start_app():
+    app = 'Robocon Simulator Platform'
+    print(f'Starting: {app}')
+
+start_app()
+
+>>> Starting: Robocon Simulator Platform</pre>
+                </div>
+            </div>
+
+            <!-- SHOWCASE 2: CODE VISUALIZER (Code C++) -->
+            <div class="project-showcase reverse">
+                <div class="project-info">
+                    <h3>Code Visualizer & Debugger</h3>
+                    <p>Hệ thống phân tích luồng thuật toán được xây dựng để phục vụ giảng dạy. Giúp học sinh đội tuyển Tin học dễ dàng hình dung luồng chạy của code (C++ & Python), soi từng biến trong bộ nhớ ngay trên trình duyệt mà không cần cài phần mềm ngoài.</p>
+                    <div class="tag-list">
+                        <span>Python 3</span>
+                        <span>C++ (JSCPP)</span>
+                        <span>WebAssembly</span>
+                    </div>
+                    <a href="visualizer.html" class="btn-primary">Mở Trình Phân Tích Code</a>
+                </div>
+                <!-- Sửa lại phần này -->
+                <div class="project-visual">
+                    <pre class="text-cpp">#include &lt;iostream&gt;
+
+int main() {
+    std::cout &lt;&lt; "Code Visualizer & Debugger";
+    return 0;
+}
+
+>>> Code Visualizer & Debugger</pre>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- KHU VỰC THÀNH VIÊN -->
+    <section id="members" class="section">
+        <div class="section-header">
+            <h2>Thành Viên Nòng Cốt</h2>
+            <p>// Đội ngũ đứng sau các dự án</p>
+        </div>
+
+        <div class="team-grid">
+            <!-- Thành viên 1 -->
+            <div class="team-card">
+                <div class="avatar">👨‍💻</div>
+                <h3>Mai Trương Thái Lâm</h3>
+                <div class="member-role">Chủ nhiệm CLB / Lead Programmer</div>
+                <p>Định hướng chuyên môn thuật toán, phát triển các phần mềm công cụ hỗ trợ và trực tiếp huấn luyện đội tuyển Tin học.</p>
+                <div class="member-contact">
+                    <a href="#" target="_blank">Facebook</a>
+                    <a href="mailto:your_email@example.com">Email</a>
+                </div>
+            </div>
+
+            <!-- Thành viên 2 -->
+            <div class="team-card">
+                <div class="avatar">⚙️</div>
+                <h3>Phạm Chí Hoài</h3>
+                <div class="member-role">Phó Chủ nhiệm / Trưởng Ban Cơ Khí</div>
+                <p>Chịu trách nhiệm lên bản vẽ thiết kế 3D, gia công các chi tiết cơ khí và trực tiếp lắp ráp mô hình robot thực chiến.</p>
+                <div class="member-contact">
+                    <a href="#" target="_blank">Facebook</a>
+                    <a href="mailto:your_email@example.com">Email</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- THỐNG KÊ LÃNH ĐẠO -->
+        <div class="stats-container">
+            <div class="stat-box">
+                <h4>2025</h4>
+                <p>Á Quân Quốc Gia</p>
+                <span>Giải thi đấu Robocon ORC</span>
+            </div>
+            <div class="stat-box">
+                <h4>100%</h4>
+                <p>Trực Tuyến</p>
+                <span>Hệ thống Giả lập & Code Visualizer</span>
+            </div>
+            <div class="stat-box">
+                <h4>HSG</h4>
+                <p>Đội Tuyển Tin Học</p>
+                <span>Lực lượng nòng cốt thi đấu cấp Tỉnh của nhà trường</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>&copy; 2026 Bản quyền thuộc về <span>Câu lạc bộ Robocon THPT Phan Văn Trị</span>.</p>
+        <p style="margin-top: 5px; font-size: 12px;">Được phát triển và thiết kế bởi Chủ nhiệm CLB.</p>
+    </footer>
+
+</body>
+</html>
