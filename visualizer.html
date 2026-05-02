@@ -111,6 +111,13 @@
         .var-toggle-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-family: var(--font-code); font-size: 14px; }
         .var-toggle-item:last-child { border: none; }
         input[type="checkbox"] { accent-color: var(--text-accent); width: 16px; height: 16px; cursor: pointer; }
+        
+        /* --- CSS CHO CLASS VÀ DICTIONARY --- */
+        .var-obj-box { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; min-width: 150px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .var-obj-header { font-size: 11px; color: #79c0ff; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px dashed var(--border); padding-bottom: 4px; margin-bottom: 2px; font-weight: bold; }
+        .var-obj-row { font-size: 13px; display: flex; gap: 8px; }
+        .var-obj-key { color: #d2a8ff; font-weight: normal; }
+        .var-obj-val { color: #a5d6ff; }
     </style>
 </head>
 <body>
@@ -324,6 +331,7 @@ print(ket_qua)</textarea>
                 const valsDiv = document.createElement('div');
                 valsDiv.className = 'var-values';
 
+                // --- BẮT ĐẦU VẼ CÁC KHỐI ---
                 if (data.type === 'list') {
                     const bOpen = document.createElement('span'); bOpen.className = 'var-symbol'; bOpen.textContent = '[';
                     valsDiv.appendChild(bOpen);
@@ -337,7 +345,43 @@ print(ket_qua)</textarea>
 
                     const bClose = document.createElement('span'); bClose.className = 'var-symbol'; bClose.textContent = ']';
                     valsDiv.appendChild(bClose);
+
+                } else if (data.type === 'object' || data.type === 'dict') {
+                    // Vẽ thẻ Card cho Class Object / Dictionary
+                    const objBox = document.createElement('div');
+                    objBox.className = 'var-obj-box';
+                    
+                    if (data.type === 'object') {
+                        const header = document.createElement('div');
+                        header.className = 'var-obj-header';
+                        header.textContent = `Class: ${data.class_name}`;
+                        objBox.appendChild(header);
+                    } else {
+                        const header = document.createElement('div');
+                        header.className = 'var-obj-header';
+                        header.textContent = `Dictionary`;
+                        objBox.appendChild(header);
+                    }
+
+                    const entries = Object.entries(data.val);
+                    if (entries.length === 0) {
+                        const empty = document.createElement('div');
+                        empty.style.color = 'var(--text-muted)';
+                        empty.style.fontSize = '12px';
+                        empty.textContent = '{} (Trống)';
+                        objBox.appendChild(empty);
+                    } else {
+                        entries.forEach(([key, val]) => {
+                            const row = document.createElement('div');
+                            row.className = 'var-obj-row';
+                            row.innerHTML = `<span class="var-obj-key">${key}:</span> <span class="var-obj-val">${val}</span>`;
+                            objBox.appendChild(row);
+                        });
+                    }
+                    valsDiv.appendChild(objBox);
+
                 } else {
+                    // Các biến cơ bản (int, string, bool...)
                     const block = document.createElement('div');
                     block.className = 'var-block';
                     block.textContent = data.val;
@@ -421,6 +465,7 @@ print(ket_qua)</textarea>
             pyodideInstance.globals.set("user_code_str", code);
 
             // Đoạn script Python Tracer đã được cập nhật để hỗ trợ lệnh input()
+            // Đoạn script Python Tracer đã được nâng cấp hỗ trợ Class & Dict
             const pythonTracerCode = `
 import sys
 import io
@@ -433,22 +478,17 @@ output_buffer = io.StringIO()
 
 # --- XỬ LÝ LỆNH INPUT() ---
 def custom_input(prompt_text=""):
-    # In câu hỏi ra buffer (để hiển thị ở Console sau này)
     if prompt_text:
         output_buffer.write(str(prompt_text))
         
-    # Gọi hộp thoại nhập liệu mặc định của Trình duyệt
     val = js.prompt(prompt_text)
     
-    # Nếu người dùng bấm Cancel, mặc định trả về chuỗi rỗng
     if val is None:
         val = ""
         
-    # In câu trả lời vào buffer để giống như gõ trên terminal thật
     output_buffer.write(val + "\\n")
     return val
 
-# Ghi đè hàm input mặc định của Python
 builtins.input = custom_input
 
 # --- LOGIC THEO DÕI BIẾN (TRACER) ---
@@ -457,10 +497,23 @@ def trace_calls(frame, event, arg):
         locals_copy = {}
         combined_vars = {**frame.f_globals, **frame.f_locals}
         
+        # VÒNG LẶP ĐÃ ĐƯỢC NÂNG CẤP TẠI ĐÂY
         for k, v in combined_vars.items():
-            if not k.startswith('__') and type(v) in (int, float, str, bool, list, dict, tuple):
-                if isinstance(v, (list, tuple)):
+            if not k.startswith('__') and not str(type(v)).startswith("<class 'function'>") and not str(type(v)).startswith("<class 'module'>") and not isinstance(v, type):
+                
+                if isinstance(v, (int, float, str, bool)):
+                    locals_copy[k] = {"type": "prim", "val": repr(v)}
+                
+                elif isinstance(v, (list, tuple)):
                     locals_copy[k] = {"type": "list", "val": [repr(x) for x in v]}
+                
+                elif isinstance(v, dict):
+                    locals_copy[k] = {"type": "dict", "val": {str(dk): repr(dv) for dk, dv in v.items()}}
+                
+                elif hasattr(v, '__dict__'):
+                    attrs = {str(ak): repr(av) for ak, av in v.__dict__.items()}
+                    locals_copy[k] = {"type": "object", "class_name": v.__class__.__name__, "val": attrs}
+                
                 else:
                     locals_copy[k] = {"type": "prim", "val": repr(v)}
                     
