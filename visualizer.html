@@ -391,15 +391,38 @@ print(ket_qua)</textarea>
 
             pyodideInstance.globals.set("user_code_str", code);
 
-            // Đoạn script Python Tracer đã được cập nhật để phân loại List và Primative
+            // Đoạn script Python Tracer đã được cập nhật để hỗ trợ lệnh input()
             const pythonTracerCode = `
 import sys
 import io
 import json
+import builtins
+import js
 
 trace_log = []
 output_buffer = io.StringIO()
 
+# --- XỬ LÝ LỆNH INPUT() ---
+def custom_input(prompt_text=""):
+    # In câu hỏi ra buffer (để hiển thị ở Console sau này)
+    if prompt_text:
+        output_buffer.write(str(prompt_text))
+        
+    # Gọi hộp thoại nhập liệu mặc định của Trình duyệt
+    val = js.prompt(prompt_text)
+    
+    # Nếu người dùng bấm Cancel, mặc định trả về chuỗi rỗng
+    if val is None:
+        val = ""
+        
+    # In câu trả lời vào buffer để giống như gõ trên terminal thật
+    output_buffer.write(val + "\\n")
+    return val
+
+# Ghi đè hàm input mặc định của Python
+builtins.input = custom_input
+
+# --- LOGIC THEO DÕI BIẾN (TRACER) ---
 def trace_calls(frame, event, arg):
     if event == 'line' and frame.f_code.co_filename == '<user_code>':
         locals_copy = {}
@@ -407,7 +430,6 @@ def trace_calls(frame, event, arg):
         
         for k, v in combined_vars.items():
             if not k.startswith('__') and type(v) in (int, float, str, bool, list, dict, tuple):
-                # Bắt định dạng là list/tuple để giao diện JS vẽ nhiều khối
                 if isinstance(v, (list, tuple)):
                     locals_copy[k] = {"type": "list", "val": [repr(x) for x in v]}
                 else:
