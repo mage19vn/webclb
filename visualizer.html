@@ -6,6 +6,10 @@
     <title>Code Visualizer</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23161b22'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-family='Consolas, monospace' font-weight='bold' font-size='45' fill='%2358a6ff'>[ / ]</text></svg>">
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <!-- Thư viện Prism.js hỗ trợ highlight code -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
     <style>
         /* CSS Variables cho Theme hiện đại */
         :root {
@@ -62,13 +66,20 @@
         /* --- EDITOR --- */
         .editor-container { flex: 2; display: flex; position: relative; background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
         .line-numbers { padding: 15px 10px; background: var(--bg-panel); color: var(--text-muted); text-align: right; font-family: var(--font-code); font-size: 14px; line-height: 24px; user-select: none; border-right: 1px solid var(--border); min-width: 45px; overflow-y: hidden; }
-        .textarea-wrapper { flex: 1; position: relative; overflow: hidden; }
-        textarea#codeInput { width: 100%; height: 100%; padding: 15px 10px; border: none; background: transparent; color: var(--text-main); font-family: var(--font-code); font-size: 14px; line-height: 24px; resize: none; outline: none; white-space: pre; overflow: auto; }
+        /* SỬA LẠI CSS PHẦN EDITOR */
+        .textarea-wrapper { flex: 1; position: relative; overflow: hidden; background: var(--bg-base); }
+        
+        /* Lớp hiển thị màu code (nằm dưới) */
+        #highlightLayer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 15px 10px; margin: 0; border: none; background: transparent; font-family: var(--font-code); font-size: 14px; line-height: 24px; white-space: pre; overflow: hidden; pointer-events: none; z-index: 0; }
+        #highlightLayer code { font-family: var(--font-code); text-shadow: none !important; }
+        
+        /* Textarea nhập liệu (nằm trên, làm trong suốt chữ, chỉ hiện con trỏ chuột) */
+        textarea#codeInput { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 15px 10px; border: none; background: transparent; color: transparent; caret-color: var(--text-main); font-family: var(--font-code); font-size: 14px; line-height: 24px; resize: none; outline: none; white-space: pre; overflow: auto; z-index: 2; }
+        textarea#codeInput::selection { background: rgba(56, 139, 253, 0.4); color: transparent; }
         
         /* Highlight dòng đang chạy */
         .active-line { position: absolute; left: 0; right: 0; height: 24px; background: var(--hl-line-bg); border-left: 3px solid var(--hl-line-border); pointer-events: none; display: none; z-index: 1; transition: top 0.1s ease; }
         .active-line::before { content: "▶"; color: var(--hl-line-border); position: absolute; left: 6px; top: 1px; font-size: 12px; }
-
         /* --- CONSOLE --- */
         .console-container { flex: 1; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; }
         .console-output { flex: 1; padding: 10px 12px; font-family: var(--font-code); font-size: 13px; overflow-y: auto; white-space: pre-wrap; color: var(--text-main); }
@@ -140,7 +151,10 @@
                 <div id="lineNumbers" class="line-numbers"></div>
                 <div class="textarea-wrapper">
                     <div id="activeLine" class="active-line"></div>
-                    <textarea id="codeInput" spellcheck="false" oninput="updateLineNumbers()" onscroll="syncScroll()">
+                    <!-- Layer hiển thị màu -->
+                    <pre id="highlightLayer" aria-hidden="true"><code class="language-python" id="codeHighlight"></code></pre>
+                    <!-- Layer gõ code -->
+                    <textarea id="codeInput" spellcheck="false" oninput="updateEditor()" onscroll="syncScroll()">
 print("Khởi tạo danh sách:")
 arr = [5, 10, 15]
 tong = 0
@@ -197,13 +211,28 @@ print(ket_qua)</textarea>
         let visibleVariables = new Set();
 
         // --- UI: EDITOR ---
-        function updateLineNumbers() {
-            const lines = codeInput.value.split('\n').length;
+        // --- UI: EDITOR ---
+        function updateEditor() {
+            const text = codeInput.value;
+            
+            // 1. Cập nhật số dòng
+            const lines = text.split('\n').length;
             lineNumbers.innerHTML = Array(lines).fill(0).map((_, i) => i + 1).join('<br>');
+            
+            // 2. Cập nhật màu code
+            let escapedText = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            // Thêm khoảng trắng ảo ở cuối để không bị mất dòng cuối cùng
+            if (escapedText[escapedText.length - 1] === "\n") escapedText += " "; 
+            
+            const codeHighlight = document.getElementById('codeHighlight');
+            codeHighlight.innerHTML = escapedText;
+            Prism.highlightElement(codeHighlight);
         }
         
         function syncScroll() {
             lineNumbers.scrollTop = codeInput.scrollTop;
+            document.getElementById('highlightLayer').scrollTop = codeInput.scrollTop;
+            document.getElementById('highlightLayer').scrollLeft = codeInput.scrollLeft;
             updateArrowPosition();
         }
 
@@ -215,7 +244,7 @@ print(ket_qua)</textarea>
                 activeLine.style.top = topPos + 'px';
             }
         }
-        updateLineNumbers(); // Gọi lần đầu
+        updateEditor(); // Gọi lần đầu
 
         // --- UI: MODAL CÀI ĐẶT ---
         function toggleDebug() {
